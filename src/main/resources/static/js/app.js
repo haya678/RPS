@@ -226,10 +226,17 @@ function prepareMatchTab() {
   if (pendingMatchWindow && !pendingMatchWindow.closed) return;
   try {
     pendingMatchWindow = window.open('', '_blank');
-    openMatchInNewTab = Boolean(pendingMatchWindow);
+    if (!pendingMatchWindow || pendingMatchWindow.closed) {
+      pendingMatchWindow = null;
+      openMatchInNewTab = false;
+      showMsg(lobbyMessage, 'Popup blocked. The room will continue in this tab.', true);
+      return;
+    }
+    openMatchInNewTab = true;
   } catch (error) {
     pendingMatchWindow = null;
     openMatchInNewTab = false;
+    showMsg(lobbyMessage, 'Popup blocked. The room will continue in this tab.', true);
   }
 }
 
@@ -364,15 +371,6 @@ function setLoggedIn(user) {
   loadLeaderboard();
   syncNotebookDoodles();
   mountGameUiDecorations();
-
-  if (matchOnlyMode && directMatchRoomId) {
-    sendWs({
-      action: 'joinRoom',
-      tornId: currentUser.torn_id,
-      username: currentUser.username,
-      roomId: directMatchRoomId
-    });
-  }
 }
 
 function mountGameUiDecorations() {
@@ -626,6 +624,14 @@ function handleWsMessage(data) {
     case 'identified':
       wsIdentified = true;
       requestPublicRooms();
+      if (matchOnlyMode && directMatchRoomId) {
+        sendWs({
+          action: 'joinRoom',
+          tornId: currentUser.torn_id,
+          username: currentUser.username,
+          roomId: directMatchRoomId
+        });
+      }
       break;
 
     case 'publicRooms':
@@ -1038,13 +1044,6 @@ function setAuthMode(mode) {
   const isSignup = mode === 'signup';
   tabSignup.classList.toggle('active', isSignup);
   tabLogin.classList.toggle('active', !isSignup);
-  if (signupNote) {
-    if (isSignup) {
-      signupNote.classList.remove('hidden');
-    } else {
-      signupNote.classList.add('hidden');
-    }
-  }
   $('#auth-btn').textContent = isSignup ? 'Sign Up' : 'Log In';
 }
 
@@ -1130,6 +1129,14 @@ withdrawBtn.addEventListener('click', async () => {
 
 // ── ROOMS ──────────────────────────────────────────────
 createRoomBtn.addEventListener('click', () => {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    showMsg(lobbyMessage, 'Connecting... wait a moment and try again.', true);
+    return;
+  }
+  if (!currentUser?.torn_id) {
+    showMsg(lobbyMessage, 'Please log in first.', true);
+    return;
+  }
   const bet = parseInt(betInput.value, 10);
   if (!bet || bet <= 0) {
     showMsg(lobbyMessage, 'Bet must be a positive whole number.', true);
@@ -1154,6 +1161,14 @@ createRoomBtn.addEventListener('click', () => {
 });
 
 playBotBtn?.addEventListener('click', () => {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    showMsg(lobbyMessage, 'Connecting... wait a moment and try again.', true);
+    return;
+  }
+  if (!currentUser?.torn_id) {
+    showMsg(lobbyMessage, 'Please log in first.', true);
+    return;
+  }
   const bet = parseInt(betInput.value, 10);
   if (!bet || bet <= 0) {
     showMsg(lobbyMessage, 'Bet must be a positive whole number.', true);
