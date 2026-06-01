@@ -7,10 +7,11 @@ services:
     dockerfilePath: ./Dockerfile
     healthCheckPath: /
     envVars:
-      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
-        value: update
-      # Set in Render dashboard (secrets):
-      # SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD
-      # SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
-      # SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.PostgreSQLDialect
+      - key: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+        value: org.postgresql.Driver
+      - key: SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT
+        value: org.hibernate.dialect.PostgreSQLDialect
+      # Required in dashboard (from Postgres + secrets):
+      # SPRING_DATASOURCE_URL=jdbc:postgresql://HOST:5432/DBNAME
+      # SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD
       # TORN_API_MY_KEY, ADMIN_SECRET_KEY

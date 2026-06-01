@@ -70,14 +70,12 @@
             <scope>runtime</scope>
         </dependency>
 
-        <!-- PostgreSQL — swap driver and JDBC URL in application.properties -->
-        <!--
+        <!-- PostgreSQL (Render / production) -->
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
         </dependency>
-        -->
 
         <dependency>
             <groupId>org.projectlombok</groupId>
