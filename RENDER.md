@@ -19,19 +19,29 @@ Convert to JDBC for Spring (same host/user/pass/db):
 - **Root Directory:** *(empty)*  
 - **Dockerfile Path:** `Dockerfile`
 
-## 3. Environment variables (Web Service → Environment)
+## 3. Link Postgres to the web service (easiest)
+
+1. Web Service → **Environment** → **Add environment variable** → **Add from database** → pick your Postgres.
+2. Render adds `DATABASE_URL` automatically (`postgres://...`). The app converts that to JDBC — **do not** paste `postgres://` into `SPRING_DATASOURCE_URL`.
+
+Still add these manually:
 
 | Key | Value |
 |-----|--------|
-| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://HOST:5432/DATABASE` |
-| `SPRING_DATASOURCE_USERNAME` | from Postgres dashboard |
-| `SPRING_DATASOURCE_PASSWORD` | from Postgres dashboard |
-| `SPRING_DATASOURCE_DRIVER_CLASS_NAME` | `org.postgresql.Driver` |
-| `SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT` | `org.hibernate.dialect.PostgreSQLDialect` |
 | `TORN_API_MY_KEY` | your Torn API key |
 | `ADMIN_SECRET_KEY` | long random string |
 
-**Link database:** Web Service → **Environment** → **Add from database** (select your Postgres) — then fix `SPRING_DATASOURCE_URL` to **jdbc:postgresql://...** if needed (Render’s raw URL is not JDBC).
+**Optional** (only if not using linked `DATABASE_URL`):
+
+| Key | Value |
+|-----|--------|
+| `SPRING_DATASOURCE_URL` | `jdbc:postgresql://HOST:5432/DB?sslmode=require` |
+| `SPRING_DATASOURCE_USERNAME` | from Postgres |
+| `SPRING_DATASOURCE_PASSWORD` | from Postgres |
+| `SPRING_DATASOURCE_DRIVER_CLASS_NAME` | `org.postgresql.Driver` |
+| `SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT` | `org.hibernate.dialect.PostgreSQLDialect` |
+
+**Wrong (causes crash):** `SPRING_DATASOURCE_URL=postgres://user:pass@host/db`
 
 ## 4. Push and deploy
 

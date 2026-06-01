@@ -1,10 +1,10 @@
-# Build stage
+# Build stage (Render free tier: keep Maven memory modest)
 FROM maven:3.9-eclipse-temurin-17-alpine AS build
 WORKDIR /app
+ENV MAVEN_OPTS="-Xmx450m"
 COPY pom.xml .
-RUN mvn -B -q dependency:go-offline -DskipTests || true
 COPY src ./src
-RUN mvn -B -DskipTests clean package
+RUN mvn -B -DskipTests clean package -Dmaven.test.skip=true
 
 # Run stage
 FROM eclipse-temurin:17-jre-alpine
