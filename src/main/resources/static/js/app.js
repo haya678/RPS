@@ -18,6 +18,15 @@ const matchPlayers = {
   p2: { id: null, name: '', avatar: '' }
 };
 
+let pendingMatchWindow = null;
+let openMatchInNewTab = false;
+let currentMatchRoomId = null;
+let roundTimerInterval = null;
+let roundTimerExpiresAt = null;
+const profileCache = new Map();
+let hoverCard = null;
+let hoverCardHideTimeout = null;
+
 // ── ELEMENTS ───────────────────────────────────────────
 const authSection = $('#auth-section');
 const gameSection = $('#game-section');
@@ -71,6 +80,14 @@ const roomChatLog = $('#room-chat-log');
 const roomChatForm = $('#room-chat-form');
 const roomChatInput = $('#room-chat-input');
 const roomChatCode = $('#room-chat-code');
+const waitingRoomPanel = $('#waiting-room-panel');
+const waitingRoomCode = $('#waiting-room-code');
+const waitingRoomBet = $('#waiting-room-bet');
+const waitingRoomRounds = $('#waiting-room-rounds');
+const waitingRoomVisibility = $('#waiting-room-visibility');
+const cancelRoomBtn = $('#cancel-room-btn');
+const copyRoomCodeBtn = $('#copy-room-code-btn');
+const lobbyActions = $('#lobby-actions');
 const globalChatLog = $('#global-chat-log');
 const globalChatForm = $('#global-chat-form');
 const globalChatInput = $('#global-chat-input');
@@ -83,6 +100,7 @@ const matchOverlay = $('#match-overlay');
 const matchArena = $('#match-arena');
 const matchSketchFx = $('#match-sketch-fx');
 const matchFxLayer = $('#match-fx-layer');
+const roundTimerDisplay = $('#round-timer-display');
 
 // ── UTILITIES ──────────────────────────────────────────
 function showMsg(el, msg, isError) {
@@ -90,6 +108,202 @@ function showMsg(el, msg, isError) {
   el.className = isError ? 'error-msg' : 'success-msg';
   el.classList.remove('hidden');
   setTimeout(() => el.classList.add('hidden'), 6000);
+}
+
+function createHoverCard() {
+  if (hoverCard) return;
+  hoverCard = document.createElement('div');
+  hoverCard.id = 'profile-hover-card';
+  hoverCard.className = 'profile-hover-card hidden';
+  hoverCard.innerHTML = `
+    <div class="profile-hover-inner">
+      <div class="profile-hover-avatar-wrap">
+        <img id="hover-avatar" class="profile-hover-avatar" src="" alt="Player avatar">
+      </div>
+      <div class="profile-hover-body">
+        <div class="profile-hover-name" id="hover-username"></div>
+        <div class="profile-hover-meta" id="hover-meta"></div>
+        <div class="profile-hover-stats">
+          <div class="hover-stat"><span class="hover-label">Balance</span><strong id="hover-balance"></strong></div>
+          <div class="hover-stat"><span class="hover-label">Matches</span><strong id="hover-matches"></strong></div>
+          <div class="hover-stat"><span class="hover-label">Wins</span><strong id="hover-wins"></strong></div>
+          <div class="hover-stat"><span class="hover-label">Win Rate</span><strong id="hover-winrate"></strong></div>
+          <div class="hover-stat"><span class="hover-label">Net</span><strong id="hover-net"></strong></div>
+        </div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(hoverCard);
+}
+
+function positionHoverCard(x, y) {
+  if (!hoverCard) return;
+  const padding = 12;
+  const cardRect = hoverCard.getBoundingClientRect();
+  let left = x + 20;
+  let top = y + 18;
+  if (left + cardRect.width > window.innerWidth - padding) {
+    left = x - cardRect.width - 20;
+  }
+  if (top + cardRect.height > window.innerHeight - padding) {
+    top = Math.max(padding, y - cardRect.height - 20);
+  }
+  hoverCard.style.left = `${left}px`;
+  hoverCard.style.top = `${top}px`;
+}
+
+function showProfileHoverCard(profile, x, y) {
+  createHoverCard();
+  if (!hoverCard) return;
+  hoverCard.querySelector('#hover-avatar').src = profile.profile_image_url || profile.avatar || `https://images.torn.com/avatars/${profile.torn_id}.png`;
+  hoverCard.querySelector('#hover-username').textContent = profile.username || 'Unknown player';
+  hoverCard.querySelector('#hover-meta').textContent = profile.torn_id ? `Torn ID ${profile.torn_id}` : 'Guest profile';
+  const formatMoola = (value) => typeof MoolaIcon !== 'undefined' ? MoolaIcon.amountHtml(asNumber(value)) : asNumber(value).toLocaleString();
+  hoverCard.querySelector('#hover-balance').innerHTML = profile.site_balance !== undefined ? formatMoola(profile.site_balance) : '0';
+  hoverCard.querySelector('#hover-matches').textContent = `${asNumber(profile.total_matches_played)} played`;
+  hoverCard.querySelector('#hover-wins').textContent = `${asNumber(profile.total_matches_won)} won`;
+  hoverCard.querySelector('#hover-winrate').textContent = `${asNumber(profile.win_rate).toFixed(2)}%`;
+  const net = asNumber(profile.net_profit_loss);
+  hoverCard.querySelector('#hover-net').textContent = net >= 0 ? `+${net.toLocaleString()}` : net.toLocaleString();
+  hoverCard.classList.remove('hidden');
+  hoverCardHideTimeout = null;
+  positionHoverCard(x, y);
+}
+
+function hideProfileHoverCard() {
+  if (!hoverCard) return;
+  hoverCard.classList.add('hidden');
+}
+
+function startRoundTimerDisplay(expiresAt) {
+  if (!roundTimerDisplay) return;
+  clearRoundTimerDisplay();
+  roundTimerExpiresAt = expiresAt;
+  updateRoundTimerDisplay();
+  roundTimerDisplay.classList.remove('hidden');
+  roundTimerInterval = setInterval(updateRoundTimerDisplay, 1000);
+}
+
+function updateRoundTimerDisplay() {
+  if (!roundTimerDisplay || !roundTimerExpiresAt) return;
+  const remaining = Math.max(0, Math.round((roundTimerExpiresAt - Date.now()) / 1000));
+  roundTimerDisplay.textContent = remaining > 0 ? `Move auto-picks in ${remaining}s` : 'Picking moves now...';
+  if (remaining <= 0) {
+    clearRoundTimerDisplay();
+  }
+}
+
+function clearRoundTimerDisplay() {
+  if (roundTimerInterval) {
+    clearInterval(roundTimerInterval);
+    roundTimerInterval = null;
+  }
+  roundTimerExpiresAt = null;
+  roundTimerDisplay?.classList.add('hidden');
+}
+
+function prepareMatchTab() {
+  if (pendingMatchWindow && !pendingMatchWindow.closed) return;
+  try {
+    pendingMatchWindow = window.open('', '_blank');
+    openMatchInNewTab = Boolean(pendingMatchWindow);
+  } catch (error) {
+    pendingMatchWindow = null;
+    openMatchInNewTab = false;
+  }
+}
+
+function routePendingMatchTab(roomId) {
+  if (!pendingMatchWindow || pendingMatchWindow.closed) {
+    pendingMatchWindow = null;
+    openMatchInNewTab = false;
+    return;
+  }
+  const targetUrl = `${location.origin}${location.pathname}?match=${encodeURIComponent(roomId)}`;
+  pendingMatchWindow.location.href = targetUrl;
+  pendingMatchWindow.focus();
+  pendingMatchWindow = null;
+  openMatchInNewTab = false;
+}
+
+function clearPendingMatchTab() {
+  pendingMatchWindow = null;
+  openMatchInNewTab = false;
+}
+
+function safeOpenMatchTab(roomId) {
+  if (openMatchInNewTab && pendingMatchWindow && !pendingMatchWindow.closed) {
+    routePendingMatchTab(roomId);
+  } else {
+    clearPendingMatchTab();
+  }
+}
+
+function updateMatchRoomId(roomId) {
+  currentMatchRoomId = roomId;
+}
+
+function fetchPlayerProfile(tornId) {
+  if (tornId === 'BOT_BAINING') {
+    return Promise.resolve({
+      username: 'The House',
+      torn_id: tornId,
+      profile_image_url: '/baining.jpg',
+      site_balance: 0,
+      total_matches_played: 10000,
+      total_matches_won: 5200,
+      win_rate: 52.0,
+      net_profit_loss: 250000,
+      total_moola_betted: 1000000,
+      total_moola_won: 1250000,
+      total_moola_lost: 800000
+    });
+  }
+  if (currentUser && currentUser.torn_id === tornId) {
+    return Promise.resolve(currentUser);
+  }
+  if (profileCache.has(tornId)) {
+    return Promise.resolve(profileCache.get(tornId));
+  }
+  return fetch(`/api/user/${encodeURIComponent(tornId)}`)
+    .then((res) => {
+      if (!res.ok) throw new Error('Profile load failed');
+      return res.json();
+    })
+    .then((data) => {
+      profileCache.set(tornId, data);
+      return data;
+    });
+}
+
+function showHoverForButton(btn, pageX, pageY) {
+  const tornId = btn.dataset.tornId;
+  if (!tornId) return;
+  fetchPlayerProfile(tornId)
+    .then((data) => showProfileHoverCard(data, pageX, pageY))
+    .catch(() => {});
+}
+
+function handleProfileButtonInteraction(event) {
+  const btn = event.target.closest('.player-profile-btn, .player-avatar-btn');
+  if (!btn) return;
+  if (btn.dataset.tornId === 'BOT_BAINING') {
+    showProfileHoverCard({
+      username: 'The House',
+      torn_id: 'BOT_BAINING',
+      profile_image_url: '/baining.jpg',
+      site_balance: 0,
+      total_matches_played: 10000,
+      total_matches_won: 5200,
+      win_rate: 52.0,
+      net_profit_loss: 250000,
+      total_moola_betted: 1000000,
+      total_moola_won: 1250000,
+      total_moola_lost: 800000
+    }, event.pageX, event.pageY);
+    return;
+  }
+  showHoverForButton(btn, event.pageX, event.pageY);
 }
 
 function updateBalance(bal) {
@@ -212,10 +426,10 @@ function renderLeaderboard(users) {
     return;
   }
   leaderboardList.innerHTML = users.map((user, idx) => {
-    let rankSymbol = `${idx + 1}.`;
-    if (idx === 0) rankSymbol = '🥇';
-    else if (idx === 1) rankSymbol = '🥈';
-    else if (idx === 2) rankSymbol = '🥉';
+    let rankSymbol = `<span class="rank-icon rank-default">${idx + 1}</span>`;
+    if (idx === 0) rankSymbol = '<span class="rank-icon rank-gold">1</span>';
+    else if (idx === 1) rankSymbol = '<span class="rank-icon rank-silver">2</span>';
+    else if (idx === 2) rankSymbol = '<span class="rank-icon rank-bronze">3</span>';
 
     const net = user.net_profit_loss ?? 0;
     const netFormatted = net >= 0 ? `+${net.toLocaleString()}` : net.toLocaleString();
@@ -253,6 +467,7 @@ function setLoggedOut() {
   clearChatLog(matchRoomChatLog);
   if (profileModal) profileModal.classList.add('hidden');
   closeDepositVerifiedModal();
+  hideWaitingRoom();
   syncNotebookDoodles();
 }
 
@@ -299,6 +514,38 @@ function showRoomChat(roomId) {
   }
   roomChatCode.textContent = roomId;
   roomChatSection.classList.remove('hidden');
+}
+
+function showWaitingRoom(data) {
+  const roomId = data.roomId;
+  if (!roomId) return;
+  currentRoomId = roomId;
+  if (waitingRoomCode) waitingRoomCode.textContent = roomId;
+  if (waitingRoomBet) {
+    const bet = asNumber(data.betAmount);
+    waitingRoomBet.innerHTML = typeof MoolaIcon !== 'undefined'
+      ? MoolaIcon.amountHtml(bet)
+      : bet.toLocaleString();
+  }
+  if (waitingRoomRounds) {
+    const rounds = data.rounds || ((data.winsRequired || 2) * 2 - 1);
+    waitingRoomRounds.textContent = `Best of ${rounds}`;
+  }
+  if (waitingRoomVisibility) {
+    waitingRoomVisibility.textContent = data.isPublic ? 'Public listing' : 'Private (code only)';
+  }
+  waitingRoomPanel?.classList.remove('hidden');
+  lobbyActions?.classList.add('lobby-actions--disabled');
+  if (roomCodeInput) roomCodeInput.value = '';
+  clearChatLog(roomChatLog);
+  clearChatLog(matchRoomChatLog);
+  showRoomChat(roomId);
+  if (typeof MoolaIcon !== 'undefined') MoolaIcon.mountIcons();
+}
+
+function hideWaitingRoom() {
+  waitingRoomPanel?.classList.add('hidden');
+  lobbyActions?.classList.remove('lobby-actions--disabled');
 }
 
 // ── WEBSOCKET ──────────────────────────────────────────
@@ -375,16 +622,22 @@ function handleWsMessage(data) {
       break;
 
     case 'roomCreated':
-      currentRoomId = data.roomId;
-      clearChatLog(roomChatLog);
-      clearChatLog(matchRoomChatLog);
-      showRoomChat(data.roomId);
-      const pubLabel = data.isPublic ? ' (public)' : ' (private)';
-      showMsg(lobbyMessage, `Room created${pubLabel}! Code: ${data.roomId}. Waiting for opponent...`, false);
+      showWaitingRoom(data);
       if ($('#room-id-display')) $('#room-id-display').textContent = data.roomId;
+      if (openMatchInNewTab && pendingMatchWindow) {
+        routePendingMatchTab(data.roomId);
+        showMsg(lobbyMessage, 'The room is open in a new tab. Keep this page for the lobby.', false);
+      }
       break;
 
     case 'matchStarted':
+      if (openMatchInNewTab && pendingMatchWindow) {
+        routePendingMatchTab(data.roomId);
+        showMsg(lobbyMessage, 'Match opened in a new tab. Continue there while this page stays as lobby.', false);
+        return;
+      }
+      hideWaitingRoom();
+      updateMatchRoomId(data.roomId);
       currentRoomId = data.roomId;
       currentWinsRequired = data.winsRequired || 2;
       currentMatchBet = asNumber(data.betAmount);
@@ -443,11 +696,100 @@ function handleWsMessage(data) {
       showMsg(lobbyMessage, 'Match started! Make your choice.', false);
       loadMatchPlayerProfile(data.player1Id, 'p1');
       loadMatchPlayerProfile(data.player2Id, 'p2');
+      if (data.expiresAt) {
+        startRoundTimerDisplay(data.expiresAt);
+      }
       if (typeof MatchFx !== 'undefined') {
         MatchFx.spawnNotebookCelebration(matchSketchFx, { intensity: 'light', mood: 'fight' });
         const fightLabel = MatchFx.randomMoodLabel ? MatchFx.randomMoodLabel('fight') : 'SHOOT!';
         MatchFx.floatText(matchFxLayer, fightLabel, 'fx-pop fx-stamp');
       }
+      break;
+
+    case 'matchResumed':
+      if (openMatchInNewTab && pendingMatchWindow) {
+        routePendingMatchTab(data.roomId);
+        showMsg(lobbyMessage, 'Resuming match in the new tab. Stay here for the lobby.', false);
+        return;
+      }
+      hideWaitingRoom();
+      updateMatchRoomId(data.roomId);
+      currentRoomId = data.roomId;
+      currentWinsRequired = data.winsRequired || 2;
+      currentMatchBet = asNumber(data.betAmount);
+      lastRoomConfig = {
+        betAmount: currentMatchBet,
+        rounds: (data.winsRequired || 2) * 2 - 1,
+        playWithBot: data.player2Id === 'BOT_BAINING',
+        isPublic: lastRoomConfig?.isPublic ?? false
+      };
+      currentP1Id = data.player1Id || null;
+      currentP2Id = data.player2Id || null;
+      pendingMatchEnd = null;
+      matchPlayers.p1 = { id: data.player1Id, name: data.player1, avatar: '' };
+      matchPlayers.p2 = { id: data.player2Id, name: data.player2, avatar: '' };
+      gameSectionPanel.classList.remove('hidden');
+      mountGameUiDecorations();
+      matchRoomChat.classList.remove('hidden');
+      matchOverlay.classList.add('hidden');
+      matchOverlay.innerHTML = '';
+      if (matchSketchFx) matchSketchFx.innerHTML = '';
+      hideChoiceReveal();
+      syncNotebookDoodles();
+      const resumeP1Btn = $('#p1-score-name');
+      const resumeP2Btn = $('#p2-score-name');
+      setPlayerLabel(resumeP1Btn, data.player1, data.player1Id);
+      resumeP1Btn.dataset.tornId = data.player1Id || '';
+      setPlayerLabel(resumeP2Btn, data.player2, data.player2Id);
+      resumeP2Btn.dataset.tornId = data.player2Id || '';
+      const resumeP1Av = $('#p1-avatar-btn');
+      const resumeP2Av = $('#p2-avatar-btn');
+      resumeP1Av.dataset.tornId = data.player1Id || '';
+      resumeP2Av.dataset.tornId = data.player2Id || '';
+      $('#p1-avatar').src = '';
+      $('#p2-avatar').src = '';
+      $('#p1-record').textContent = '';
+      $('#p2-record').textContent = '';
+      syncDuelBanner(data.player1, data.player2, data.player1Id, data.player2Id);
+      const resumePotEl = $('#pot-display');
+      if (resumePotEl && typeof MoolaIcon !== 'undefined') {
+        resumePotEl.innerHTML = MoolaIcon.amountHtml(data.pot, 'gold');
+      } else if (resumePotEl) {
+        resumePotEl.textContent = data.pot;
+      }
+      const resumeTotalRounds = currentWinsRequired * 2 - 1;
+      $('#round-display').textContent = `${data.round} (Best of ${resumeTotalRounds})`;
+      $('#p1-score').textContent = data.player1Wins || 0;
+      $('#p2-score').textContent = data.player2Wins || 0;
+      if (scoreTarget) {
+        scoreTarget.textContent = `First to ${currentWinsRequired} wins`;
+      }
+      roundResult.classList.add('hidden');
+      matchResult.classList.add('hidden');
+      enableChoices(!data.alreadySubmitted);
+      showMsg(lobbyMessage, 'Match resumed. Continue your duel.', false);
+      loadMatchPlayerProfile(data.player1Id, 'p1');
+      loadMatchPlayerProfile(data.player2Id, 'p2');
+      if (data.timerExpiresAt) {
+        startRoundTimerDisplay(data.timerExpiresAt);
+      }
+      break;
+
+    case 'choiceReceived':
+      break;
+
+    case 'roundTimerStart':
+      if (data.expiresAt) {
+        startRoundTimerDisplay(data.expiresAt);
+      }
+      break;
+
+    case 'roundTimerCancel':
+      clearRoundTimerDisplay();
+      break;
+
+    case 'opponentConnected':
+      showMsg(lobbyMessage, 'Opponent reconnected. Match continues.', false);
       break;
 
     case 'choiceReceived':
@@ -548,7 +890,8 @@ function handleWsMessage(data) {
       break;
 
     case 'roomCancelled':
-      showMsg(lobbyMessage, data.message || 'Room closed.', true);
+      hideWaitingRoom();
+      showMsg(lobbyMessage, data.message || 'Room closed.', false);
       currentRoomId = null;
       gameSectionPanel.classList.add('hidden');
       roomChatSection.classList.add('hidden');
@@ -601,6 +944,7 @@ function escapeHtml(text) {
 }
 
 function joinPublicRoom(roomId) {
+  prepareMatchTab();
   sendWs({
     action: 'joinRoom',
     tornId: currentUser.torn_id,
@@ -751,6 +1095,7 @@ createRoomBtn.addEventListener('click', () => {
     showMsg(lobbyMessage, 'Bet must be a multiple of 4.', true);
     return;
   }
+  prepareMatchTab();
   const rounds = parseInt(roundsSelect.value, 10) || 3;
   lastRoomConfig = {
     betAmount: bet,
@@ -774,6 +1119,7 @@ playBotBtn?.addEventListener('click', () => {
     showMsg(lobbyMessage, 'Bet must be a multiple of 4.', true);
     return;
   }
+  prepareMatchTab();
   const rounds = parseInt(roundsSelect.value, 10) || 3;
   lastRoomConfig = {
     betAmount: bet,
@@ -792,12 +1138,39 @@ playBotBtn?.addEventListener('click', () => {
   });
 });
 
+cancelRoomBtn?.addEventListener('click', () => {
+  if (!currentUser?.torn_id || !currentRoomId) return;
+  cancelRoomBtn.disabled = true;
+  sendWs({
+    action: 'cancelRoom',
+    tornId: currentUser.torn_id,
+    roomId: currentRoomId
+  });
+  setTimeout(() => { cancelRoomBtn.disabled = false; }, 1500);
+});
+
+copyRoomCodeBtn?.addEventListener('click', async () => {
+  const code = waitingRoomCode?.textContent?.trim();
+  if (!code) return;
+  try {
+    await navigator.clipboard.writeText(code);
+    showMsg(lobbyMessage, `Copied room code: ${code}`, false);
+  } catch {
+    showMsg(lobbyMessage, `Room code: ${code}`, false);
+  }
+});
+
 joinRoomBtn.addEventListener('click', () => {
+  if (waitingRoomPanel && !waitingRoomPanel.classList.contains('hidden')) {
+    showMsg(lobbyMessage, 'Cancel your open room before joining another.', true);
+    return;
+  }
   const code = roomCodeInput.value.trim();
   if (!code) {
     showMsg(lobbyMessage, 'Enter a room code.', true);
     return;
   }
+  prepareMatchTab();
   sendWs({
     action: 'joinRoom',
     tornId: currentUser.torn_id,
@@ -809,9 +1182,36 @@ joinRoomBtn.addEventListener('click', () => {
 refreshPublicRoomsBtn.addEventListener('click', () => requestPublicRooms());
 refreshLeaderboardBtn.addEventListener('click', () => loadLeaderboard());
 
-profileButton?.addEventListener('click', () => {
-  updateStatsModal();
-  profileModal?.classList.remove('hidden');
+profileButton?.addEventListener('click', (e) => {
+  if (!currentUser) return;
+  handleProfileButtonInteraction(e);
+});
+
+document.addEventListener('mouseover', (e) => {
+  const btn = e.target.closest('.player-profile-btn, .player-avatar-btn');
+  if (!btn) return;
+  clearTimeout(hoverCardHideTimeout);
+  showHoverForButton(btn, e.pageX, e.pageY);
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (hoverCard && !hoverCard.classList.contains('hidden')) {
+    positionHoverCard(e.pageX, e.pageY);
+  }
+});
+
+document.addEventListener('mouseout', (e) => {
+  const related = e.relatedTarget;
+  if (!related || (hoverCard && !hoverCard.contains(related)) && !related.closest?.('.player-profile-btn, .player-avatar-btn')) {
+    hoverCardHideTimeout = setTimeout(hideProfileHoverCard, 300);
+  }
+});
+
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.player-profile-btn, .player-avatar-btn');
+  if (!btn) return;
+  handleProfileButtonInteraction(e);
+  e.preventDefault();
 });
 
 closeProfileModalBtn?.addEventListener('click', () => profileModal?.classList.add('hidden'));

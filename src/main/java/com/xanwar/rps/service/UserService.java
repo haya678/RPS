@@ -34,6 +34,11 @@ public class UserService {
     }
 
     @Transactional
+    public User save(User user) {
+        return userRepository.save(user);
+    }
+
+    @Transactional
     public UserDto signup(String playerApiKey, String pin) {
         validatePin(pin);
         TornIdentity identity = fetchIdentity(playerApiKey);

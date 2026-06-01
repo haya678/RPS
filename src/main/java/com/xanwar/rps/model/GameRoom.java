@@ -185,6 +185,10 @@ public class GameRoom {
         return player2SessionId;
     }
 
+    public void setPlayer2SessionId(String player2SessionId) {
+        this.player2SessionId = player2SessionId;
+    }
+
     public int getWinsRequired() {
         return winsRequired;
     }

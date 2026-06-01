@@ -72,4 +72,8 @@ public class HouseAccountService {
         info.put("maxAgeHours", depositProperties.getMaxAgeHours());
         return info;
     }
+
+    public String getRecipientId() {
+        return recipientId;
+    }
 }

@@ -69,7 +69,7 @@
 
       <section id="lobby-section" class="panel">
         <h2>Lobby</h2>
-        <div class="lobby-actions">
+        <div id="lobby-actions" class="lobby-actions">
           <div class="create-room">
             <label>Bet Amount (<span data-moola-icon></span>):</label>
             <input type="number" id="bet-input" min="4" step="4" value="100">
@@ -96,6 +96,21 @@
           </div>
         </div>
         <div id="lobby-message" class="hidden"></div>
+
+        <section id="waiting-room-panel" class="panel waiting-room-panel hidden">
+          <h2>Waiting for opponent</h2>
+          <p class="info waiting-room-hint">Share this code so someone can join. The match starts when they join.</p>
+          <div class="waiting-room-code-wrap">
+            <span id="waiting-room-code" class="code waiting-room-code"></span>
+            <button type="button" id="copy-room-code-btn" class="btn-secondary btn-small">Copy code</button>
+          </div>
+          <p class="waiting-room-meta">
+            Bet: <strong id="waiting-room-bet"></strong> ·
+            <span id="waiting-room-rounds"></span> ·
+            <span id="waiting-room-visibility"></span>
+          </p>
+          <button type="button" id="cancel-room-btn" class="btn-secondary waiting-room-cancel">Cancel room</button>
+        </section>
 
         <div id="public-rooms-section" class="public-rooms">
           <div class="public-rooms-header">

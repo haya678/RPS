@@ -1,6 +1,5 @@
 package com.xanwar.rps.game;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.regex.Matcher;
@@ -92,19 +91,4 @@ public final class TornXanaxDepositParser {
         }
     }
 
-    /** Collect lines that look like xanax transfers (for debugging failed verification). */
-    public static List<String> findXanaxHints(String rawText) {
-        List<String> hints = new ArrayList<>();
-        if (rawText == null) {
-            return hints;
-        }
-        String text = stripHtml(rawText);
-        for (String line : text.split("\\n")) {
-            String t = line.trim();
-            if (t.toLowerCase().contains("xanax")) {
-                hints.add(t.length() > 160 ? t.substring(0, 160) + "…" : t);
-            }
-        }
-        return hints;
-    }
 }

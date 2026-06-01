@@ -376,6 +376,49 @@ input:focus, select:focus {
   gap: 1.5rem;
 }
 
+.waiting-room-panel {
+  margin-top: 1rem;
+  border-color: var(--good);
+  background: rgba(253, 252, 247, 0.88);
+}
+
+.waiting-room-hint {
+  margin-bottom: 0.75rem;
+}
+
+.waiting-room-code-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.waiting-room-code {
+  font-family: 'Caveat', cursive;
+  font-size: 2.4rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  padding: 0.25rem 0.6rem;
+  background: var(--accent-highlight);
+  border-radius: 8px;
+}
+
+.waiting-room-meta {
+  margin-bottom: 1rem;
+  color: var(--ink-soft);
+}
+
+.waiting-room-cancel {
+  width: 100%;
+  max-width: 220px;
+}
+
+.lobby-actions.lobby-actions--disabled {
+  opacity: 0.45;
+  pointer-events: none;
+}
+
 .create-room, .join-room {
   display: flex;
   flex-direction: column;
@@ -1709,6 +1752,34 @@ button:not(:disabled):hover {
 .leaderboard-item:hover {
   transform: rotate(-0.5deg) scale(1.01);
   background: rgba(255, 235, 59, 0.08);
+}
+
+.rank-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--paper);
+  background: var(--ink);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2);
+}
+.rank-default {
+  background: linear-gradient(135deg, #ffffff 0%, #f1f1f1 100%);
+  color: var(--ink);
+  box-shadow: inset 0 0 0 1px rgba(22,62,121,0.15);
+}
+.rank-gold {
+  background: linear-gradient(135deg, #f8d13b, #de9b12);
+}
+.rank-silver {
+  background: linear-gradient(135deg, #d8dae0, #9ea3ae);
+}
+.rank-bronze {
+  background: linear-gradient(135deg, #d48a4d, #a06433);
 }
 
 /* ── ADMIN ───────────────────────────────────── */

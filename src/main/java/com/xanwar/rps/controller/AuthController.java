@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.xanwar.rps.dto.AuthRequest;
 import com.xanwar.rps.dto.UserDto;
 import com.xanwar.rps.service.UserService;
+import com.xanwar.rps.service.HouseAccountService;
 import com.xanwar.rps.web.SessionKeys;
 import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
@@ -20,9 +21,11 @@ import java.util.Map;
 public class AuthController {
 
     private final UserService userService;
+    private final HouseAccountService houseAccountService;
 
-    public AuthController(UserService userService) {
+    public AuthController(UserService userService, HouseAccountService houseAccountService) {
         this.userService = userService;
+        this.houseAccountService = houseAccountService;
     }
 
     @PostMapping("/auth/signup")
@@ -35,7 +38,7 @@ public class AuthController {
 
         Map<String, Object> body = new HashMap<>();
         body.put("success", true);
-        body.put("user", UserResponse.from(user));
+        body.put("user", UserResponse.from(user, user.tornId().equals(houseAccountService.getRecipientId())));
         body.put("message", "Signup successful.");
         return ResponseEntity.ok(body);
     }
@@ -50,7 +53,7 @@ public class AuthController {
 
         Map<String, Object> body = new HashMap<>();
         body.put("success", true);
-        body.put("user", UserResponse.from(user));
+        body.put("user", UserResponse.from(user, user.tornId().equals(houseAccountService.getRecipientId())));
         body.put("message", "Login successful.");
         return ResponseEntity.ok(body);
     }
@@ -73,7 +76,7 @@ public class AuthController {
                 .map(user -> {
                     Map<String, Object> body = new HashMap<>();
                     body.put("success", true);
-                    body.put("user", UserResponse.from(user));
+                    body.put("user", UserResponse.from(user, user.tornId().equals(houseAccountService.getRecipientId())));
                     return ResponseEntity.ok(body);
                 })
                 .orElse(ResponseEntity.status(404).body(Map.of("success", false, "error", "User not found.")));
@@ -143,9 +146,10 @@ public class AuthController {
             int totalMatchesPlayed,
             int totalMatchesWon,
             double winRate,
-            long netProfitLoss
+            long netProfitLoss,
+            boolean isAdmin
     ) {
-        static UserResponse from(UserDto dto) {
+        static UserResponse from(UserDto dto, boolean isAdmin) {
             double winRate = dto.totalMatchesPlayed() == 0 ? 0.0
                     : (dto.totalMatchesWon() * 100.0) / dto.totalMatchesPlayed();
             long netProfitLoss = dto.totalMoolaWon() - dto.totalMoolaLost();
@@ -160,8 +164,13 @@ public class AuthController {
                     dto.totalMatchesPlayed(),
                     dto.totalMatchesWon(),
                     winRate,
-                    netProfitLoss
+                    netProfitLoss,
+                    isAdmin
             );
+        }
+
+        static UserResponse from(UserDto dto) {
+            return from(dto, false);
         }
     }
 }

@@ -29,6 +29,8 @@ public class GameRoomService {
     private final GameSessionRegistry sessionRegistry;
     private final ObjectMapper objectMapper;
     private final Map<String, GameRoom> rooms = new ConcurrentHashMap<>();
+    private final Map<String, java.util.concurrent.ScheduledFuture<?>> roomTimers = new ConcurrentHashMap<>();
+    private final java.util.concurrent.ScheduledExecutorService scheduler = java.util.concurrent.Executors.newScheduledThreadPool(2);
 
     public GameRoomService(
             WalletService walletService,
@@ -52,6 +54,11 @@ public class GameRoomService {
         if (!isValidBet(betAmount)) {
             sendError(session, "Bet must be at least " + gameProperties.getMinBetMoola()
                     + " and a multiple of " + gameProperties.getMoolaPerXanax() + " Moola.");
+            return;
+        }
+
+        if (hasActiveMatch(tornId)) {
+            sendError(session, "You already have an active room or match in progress.");
             return;
         }
 
@@ -92,6 +99,7 @@ public class GameRoomService {
             response.put("round", room.getCurrentRound());
             response.put("winsRequired", room.getWinsRequired());
             sessionRegistry.sendJson(session, response);
+            startRoundTimer(room);
         } else {
             ObjectNode response = objectMapper.createObjectNode();
             response.put("action", "roomCreated");
@@ -152,6 +160,11 @@ public class GameRoomService {
         String username = requiredText(json, "username");
         String roomId = requiredText(json, "roomId");
 
+        if (hasActiveMatch(tornId)) {
+            sendError(session, "You already have an active room or match in progress.");
+            return;
+        }
+
         GameRoom room = rooms.get(roomId);
         if (room == null) {
             sendError(session, "Room not found.");
@@ -201,6 +214,41 @@ public class GameRoomService {
         response.put("winsRequired", room.getWinsRequired());
         sessionRegistry.sendToRoom(room, response);
         broadcastPublicRooms();
+        startRoundTimer(room);
+    }
+
+    public void cancelRoom(WebSocketSession session, JsonNode json) {
+        String tornId = requiredText(json, "tornId");
+        String roomId = json.path("roomId").asText("").trim();
+
+        GameRoom room = roomId.isEmpty()
+                ? findWaitingRoomHostedBy(tornId)
+                : rooms.get(roomId);
+
+        if (room == null) {
+            sendError(session, "Room not found.");
+            return;
+        }
+
+        synchronized (room) {
+            if (!tornId.equals(room.getPlayer1Id())) {
+                sendError(session, "Only the host can cancel this room.");
+                return;
+            }
+            if (room.getStatus() != RoomStatus.WAITING) {
+                sendError(session, "This room is no longer waiting for players.");
+                return;
+            }
+        }
+
+        walletService.refundBalance(room.getPlayer1Id(), room.getBetAmount());
+
+        ObjectNode msg = objectMapper.createObjectNode();
+        msg.put("action", "roomCancelled");
+        msg.put("roomId", room.getRoomId());
+        msg.put("message", "Room cancelled. Your bet was refunded.");
+        sessionRegistry.sendJson(session, msg);
+        cleanupRoom(room);
     }
 
     public void submitChoice(WebSocketSession session, JsonNode json) {
@@ -253,6 +301,13 @@ public class GameRoomService {
             }
             if (evaluate) {
                 evaluateRound(room);
+            } else {
+                String opponentSessionId = tornId.equals(room.getPlayer1Id()) ? room.getPlayer2SessionId() : room.getPlayer1SessionId();
+                if (opponentSessionId != null) {
+                    ObjectNode oppNode = objectMapper.createObjectNode();
+                    oppNode.put("action", "opponentSelected");
+                    sessionRegistry.sendToSessionId(opponentSessionId, oppNode);
+                }
             }
         }
     }
@@ -269,52 +324,23 @@ public class GameRoomService {
                     walletService.refundBalance(room.getPlayer1Id(), room.getBetAmount());
                     ObjectNode msg = objectMapper.createObjectNode();
                     msg.put("action", "roomCancelled");
+                    msg.put("roomId", room.getRoomId());
                     msg.put("message", "Host disconnected. Bet refunded.");
                     sessionRegistry.sendToSessionId(room.getPlayer1SessionId(), msg);
                     cleanupRoom(room);
                     return;
                 }
 
-                if (room.getStatus() != RoomStatus.IN_PROGRESS) {
+                if (room.getStatus() == RoomStatus.IN_PROGRESS) {
+                    String oppSessionId = tornId.equals(room.getPlayer1Id()) ? room.getPlayer2SessionId() : room.getPlayer1SessionId();
+                    if (oppSessionId != null) {
+                        ObjectNode note = objectMapper.createObjectNode();
+                        note.put("action", "opponentConnectionStatus");
+                        note.put("connected", false);
+                        sessionRegistry.sendToSessionId(oppSessionId, note);
+                    }
                     return;
                 }
-
-                String winnerId = room.opponentId(tornId);
-                if (winnerId == null) {
-                    return;
-                }
-
-                PotSettlement settlement = PotSettlement.fromPot(room.getPot(), gameProperties.getHouseRakePercent());
-                walletService.creditBalance(winnerId, settlement.winnerPayout());
-                userService.recordMatchOutcome(winnerId, tornId, settlement.winnerPayout(), room.getBetAmount());
-                room.setStatus(RoomStatus.FINISHED);
-
-                String winnerName = winnerId.equals(room.getPlayer1Id())
-                        ? room.getPlayer1Name()
-                        : room.getPlayer2Name();
-                String loserName = tornId.equals(room.getPlayer1Id()) ? room.getPlayer1Name() : room.getPlayer2Name();
-
-                ObjectNode disconnectMsg = objectMapper.createObjectNode();
-                disconnectMsg.put("action", "opponentDisconnected");
-                disconnectMsg.put("winner", winnerName);
-                disconnectMsg.put("winnerId", winnerId);
-                disconnectMsg.put("pot", settlement.pot());
-                disconnectMsg.put("rake", settlement.rake());
-                disconnectMsg.put("winnings", settlement.winnerPayout());
-                sessionRegistry.sendToRoom(room, disconnectMsg);
-
-                if (settlement.winnerPayout() >= 100L) {
-                    ObjectNode announce = objectMapper.createObjectNode();
-                    announce.put("action", "chatMessage");
-                    announce.put("scope", "global");
-                    announce.put("tornId", "SYSTEM");
-                    announce.put("username", "🏆 ANNOUNCEMENT");
-                    announce.put("message", winnerName + " won a massive match against " + loserName + " (by forfeit) taking home " + settlement.winnerPayout() + " Moola!");
-                    announce.put("timestamp", System.currentTimeMillis());
-                    sessionRegistry.broadcastToAll(announce);
-                }
-
-                cleanupRoom(room);
             }
             return;
         }
@@ -382,7 +408,10 @@ public class GameRoomService {
         }
 
         if (matchOver) {
+            cancelRoundTimer(room.getRoomId());
             finishMatch(room, p1Wins, p2Wins);
+        } else {
+            startRoundTimer(room);
         }
     }
 
@@ -436,6 +465,13 @@ public class GameRoomService {
         }
 
         cleanupRoom(room);
+    }
+
+    private GameRoom findWaitingRoomHostedBy(String hostTornId) {
+        return rooms.values().stream()
+                .filter(r -> r.getStatus() == RoomStatus.WAITING && hostTornId.equals(r.getPlayer1Id()))
+                .findFirst()
+                .orElse(null);
     }
 
     private void cleanupRoom(GameRoom room) {
@@ -525,5 +561,126 @@ public class GameRoomService {
         chatMsg.put("message", message);
         chatMsg.put("timestamp", System.currentTimeMillis());
         sessionRegistry.sendToRoom(room, chatMsg);
+    }
+
+    private boolean hasActiveMatch(String tornId) {
+        return rooms.values().stream()
+                .anyMatch(room -> room.involvesPlayer(tornId) && room.getStatus() != RoomStatus.FINISHED);
+    }
+
+    private void startRoundTimer(GameRoom room) {
+        String roomId = room.getRoomId();
+        int roundNumber = room.getCurrentRound();
+        
+        cancelRoundTimer(roomId);
+        
+        java.util.concurrent.ScheduledFuture<?> future = scheduler.schedule(() -> {
+            handleRoundTimeout(roomId, roundNumber);
+        }, 120, java.util.concurrent.TimeUnit.SECONDS);
+        
+        roomTimers.put(roomId, future);
+    }
+    
+    private void cancelRoundTimer(String roomId) {
+        java.util.concurrent.ScheduledFuture<?> future = roomTimers.remove(roomId);
+        if (future != null) {
+            future.cancel(false);
+        }
+    }
+
+    private void handleRoundTimeout(String roomId, int roundNumber) {
+        GameRoom room = rooms.get(roomId);
+        if (room == null || room.getStatus() != RoomStatus.IN_PROGRESS || room.getCurrentRound() != roundNumber) {
+            return;
+        }
+        
+        synchronized (room) {
+            String[] choices = {"rock", "paper", "scissors"};
+            boolean p1NeedsChoice = room.getPlayer1Choice() == null;
+            boolean p2NeedsChoice = room.getPlayer2Choice() == null;
+            
+            if (p1NeedsChoice) {
+                String randomChoice = choices[(int) (Math.random() * 3)];
+                room.recordChoice(room.getPlayer1Id(), randomChoice);
+                
+                ObjectNode ack = objectMapper.createObjectNode();
+                ack.put("action", "choiceReceived");
+                ack.put("autoPicked", true);
+                sessionRegistry.sendToSessionId(room.getPlayer1SessionId(), ack);
+            }
+            
+            if (p2NeedsChoice) {
+                String randomChoice = choices[(int) (Math.random() * 3)];
+                room.recordChoice(room.getPlayer2Id(), randomChoice);
+                
+                ObjectNode ack = objectMapper.createObjectNode();
+                ack.put("action", "choiceReceived");
+                ack.put("autoPicked", true);
+                sessionRegistry.sendToSessionId(room.getPlayer2SessionId(), ack);
+            }
+        }
+        
+        evaluateRound(room);
+    }
+
+    public void checkAndResumeActiveMatch(WebSocketSession session, String tornId, String username) {
+        if (tornId == null || tornId.isBlank()) return;
+        
+        GameRoom activeRoom = rooms.values().stream()
+                .filter(room -> room.involvesPlayer(tornId) && room.getStatus() == RoomStatus.IN_PROGRESS)
+                .findFirst()
+                .orElse(null);
+                
+        if (activeRoom == null) return;
+        
+        synchronized (activeRoom) {
+            if (tornId.equals(activeRoom.getPlayer1Id())) {
+                activeRoom.setPlayer1SessionId(session.getId());
+            } else if (tornId.equals(activeRoom.getPlayer2Id())) {
+                activeRoom.setPlayer2SessionId(session.getId());
+            }
+            
+            sessionRegistry.bindPlayer(session, tornId, username, activeRoom.getRoomId());
+            
+            String oppSessionId = tornId.equals(activeRoom.getPlayer1Id()) ? activeRoom.getPlayer2SessionId() : activeRoom.getPlayer1SessionId();
+            if (oppSessionId != null) {
+                ObjectNode note = objectMapper.createObjectNode();
+                note.put("action", "opponentConnectionStatus");
+                note.put("connected", true);
+                sessionRegistry.sendToSessionId(oppSessionId, note);
+            }
+            
+            ObjectNode response = objectMapper.createObjectNode();
+            response.put("action", "matchResumed");
+            response.put("roomId", activeRoom.getRoomId());
+            response.put("player1", activeRoom.getPlayer1Name());
+            response.put("player1Id", activeRoom.getPlayer1Id());
+            response.put("player2", activeRoom.getPlayer2Name());
+            response.put("player2Id", activeRoom.getPlayer2Id());
+            response.put("player1Wins", activeRoom.getPlayer1Wins());
+            response.put("player2Wins", activeRoom.getPlayer2Wins());
+            response.put("betAmount", activeRoom.getBetAmount());
+            response.put("pot", activeRoom.getPot());
+            response.put("round", activeRoom.getCurrentRound());
+            response.put("winsRequired", activeRoom.getWinsRequired());
+            
+            boolean alreadySubmitted = false;
+            if (tornId.equals(activeRoom.getPlayer1Id())) {
+                alreadySubmitted = activeRoom.getPlayer1Choice() != null;
+            } else if (tornId.equals(activeRoom.getPlayer2Id())) {
+                alreadySubmitted = activeRoom.getPlayer2Choice() != null;
+            }
+            response.put("alreadySubmitted", alreadySubmitted);
+            
+            boolean opponentSubmitted = false;
+            if (tornId.equals(activeRoom.getPlayer1Id())) {
+                opponentSubmitted = activeRoom.getPlayer2Choice() != null;
+            } else if (tornId.equals(activeRoom.getPlayer2Id())) {
+                opponentSubmitted = activeRoom.getPlayer1Choice() != null;
+            }
+            response.put("opponentSubmitted", opponentSubmitted);
+            
+            sessionRegistry.sendJson(session, response);
+        }
     }
 }

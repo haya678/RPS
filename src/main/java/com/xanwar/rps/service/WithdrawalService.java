@@ -52,6 +52,7 @@ public class WithdrawalService {
         }
 
         user.setSiteBalance(user.getSiteBalance() - moolaAmount);
+        userService.save(user);
         int xanaxAmount = (int) (moolaAmount / step);
         Withdrawal withdrawal = new Withdrawal(tornId, user.getUsername(), moolaAmount, xanaxAmount);
         withdrawal.setUser(user);

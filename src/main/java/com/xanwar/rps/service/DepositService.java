@@ -16,10 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -70,17 +68,15 @@ public class DepositService {
 
         String requiredMessage = depositProperties.getRequiredMessage();
         int moolaPerXanax = gameProperties.getMoolaPerXanax();
-        List<String> debugHints = new ArrayList<>();
-
         long totalMoola = 0;
         totalMoola += processActivityNode(
-                data.path("events"), user, userTornId, cutoffEpoch, requiredMessage, moolaPerXanax, debugHints);
+                data.path("events"), user, userTornId, cutoffEpoch, requiredMessage, moolaPerXanax);
         totalMoola += processActivityNode(
-                data.path("log"), user, userTornId, cutoffEpoch, requiredMessage, moolaPerXanax, debugHints);
+                data.path("log"), user, userTornId, cutoffEpoch, requiredMessage, moolaPerXanax);
         totalMoola += processActivityNode(
-                data.path("data").path("events"), user, userTornId, cutoffEpoch, requiredMessage, moolaPerXanax, debugHints);
+                data.path("data").path("events"), user, userTornId, cutoffEpoch, requiredMessage, moolaPerXanax);
         totalMoola += processActivityNode(
-                data.path("data").path("log"), user, userTornId, cutoffEpoch, requiredMessage, moolaPerXanax, debugHints);
+                data.path("data").path("log"), user, userTornId, cutoffEpoch, requiredMessage, moolaPerXanax);
 
         if (totalMoola == 0) {
             result.put("success", true);
@@ -89,9 +85,6 @@ public class DepositService {
             msg.append("No new deposits found for Torn ID ").append(userTornId).append(". ");
             msg.append("Send Xanax to Hannath [3961385] with message \"").append(requiredMessage);
             msg.append("\" from the same account you logged in with, wait 1–2 minutes, then try again.");
-            if (!debugHints.isEmpty()) {
-                msg.append(" Recent Xanax activity on house account: ").append(String.join(" | ", debugHints.subList(0, Math.min(2, debugHints.size()))));
-            }
             result.put("message", msg.toString());
             result.put("site_balance", user.getSiteBalance());
             result.put("new_moola", 0);
@@ -120,8 +113,7 @@ public class DepositService {
             String userTornId,
             long cutoffEpoch,
             String requiredMessage,
-            int moolaPerXanax,
-            List<String> debugHints
+            int moolaPerXanax
     ) {
         if (node == null || node.isMissingNode() || node.isNull() || !node.isObject()) {
             return 0L;
@@ -158,8 +150,6 @@ public class DepositService {
             if (eventText.isBlank()) {
                 eventText = item.path("title").asText("");
             }
-
-            debugHints.addAll(TornXanaxDepositParser.findXanaxHints(eventText));
 
             Optional<ParsedDeposit> parsed = TornXanaxDepositParser.parse(eventText, requiredMessage);
             if (parsed.isEmpty()) {

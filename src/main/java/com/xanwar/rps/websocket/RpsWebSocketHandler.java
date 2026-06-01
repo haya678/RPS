@@ -50,9 +50,13 @@ public class RpsWebSocketHandler extends TextWebSocketHandler {
             JsonNode json = objectMapper.readTree(message.getPayload());
             String action = json.path("action").asText();
             switch (action) {
-                case "identify" -> chatService.identify(session, json);
+                case "identify" -> {
+                    chatService.identify(session, json);
+                    gameRoomService.checkAndResumeActiveMatch(session, json.path("tornId").asText(), json.path("username").asText());
+                }
                 case "createRoom" -> gameRoomService.createRoom(session, json);
                 case "joinRoom" -> gameRoomService.joinRoom(session, json);
+                case "cancelRoom" -> gameRoomService.cancelRoom(session, json);
                 case "submitChoice" -> gameRoomService.submitChoice(session, json);
                 case "listPublicRooms" -> gameRoomService.listPublicRooms(session);
                 case "globalChat" -> chatService.sendGlobalChat(session, json);
