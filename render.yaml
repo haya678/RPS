@@ -1,0 +1,16 @@
+# Render: use Docker (Java is not a native runtime option anymore)
+services:
+  - type: web
+    name: rps-battle
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /
+    envVars:
+      - key: SPRING_JPA_HIBERNATE_DDL_AUTO
+        value: update
+      # Set in Render dashboard (secrets):
+      # SPRING_DATASOURCE_URL, SPRING_DATASOURCE_USERNAME, SPRING_DATASOURCE_PASSWORD
+      # SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
+      # SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.PostgreSQLDialect
+      # TORN_API_MY_KEY, ADMIN_SECRET_KEY
