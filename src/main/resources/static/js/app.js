@@ -21,6 +21,8 @@ const matchPlayers = {
 let pendingMatchWindow = null;
 let openMatchInNewTab = false;
 let currentMatchRoomId = null;
+let matchOnlyMode = false;
+let directMatchRoomId = null;
 let roundTimerInterval = null;
 let roundTimerExpiresAt = null;
 const profileCache = new Map();
@@ -101,11 +103,14 @@ const matchArena = $('#match-arena');
 const matchSketchFx = $('#match-sketch-fx');
 const matchFxLayer = $('#match-fx-layer');
 const roundTimerDisplay = $('#round-timer-display');
+const matchInfoMessage = $('#match-info-message');
 
 // ── UTILITIES ──────────────────────────────────────────
 function showMsg(el, msg, isError) {
+  if (!el) return;
   el.textContent = msg;
-  el.className = isError ? 'error-msg' : 'success-msg';
+  const preserve = el.classList.contains('match-info-message') ? 'match-info-message' : '';
+  el.className = `${preserve} ${isError ? 'error-msg' : 'success-msg'}`.trim();
   el.classList.remove('hidden');
   setTimeout(() => el.classList.add('hidden'), 6000);
 }
@@ -200,6 +205,21 @@ function clearRoundTimerDisplay() {
   }
   roundTimerExpiresAt = null;
   roundTimerDisplay?.classList.add('hidden');
+}
+
+function setMatchOnlyMode() {
+  matchOnlyMode = true;
+  document.body.classList.add('match-only');
+}
+
+function returnToHome() {
+  resetMatchUI();
+  if (matchOnlyMode) {
+    window.location.href = `${location.origin}${location.pathname}`;
+    return;
+  }
+  gameSectionPanel.classList.add('hidden');
+  showMsg(lobbyMessage, 'Returned to lobby.', false);
 }
 
 function prepareMatchTab() {
@@ -786,6 +806,10 @@ function handleWsMessage(data) {
 
     case 'roundTimerCancel':
       clearRoundTimerDisplay();
+      break;
+
+    case 'opponentSelected':
+      showMsg(matchInfoMessage || lobbyMessage, 'Opponent has made their move. Hold tight for the reveal.', false);
       break;
 
     case 'opponentConnected':
@@ -1548,11 +1572,15 @@ function showMatchOverlay(isWin, winnerName, winnings, rake, p1Wins, p2Wins, isF
       ${moolaBlock}
       ${rake > 0 ? `<div class="result-rake">${moolaIcon}House rake: ${rake.toLocaleString()}</div>` : ''}
       <div class="result-score">Final score · ${p1Wins} – ${p2Wins}</div>
-      <button type="button" class="btn-accent btn-play-again" id="play-again-btn">Play Again</button>
+      <div class="result-actions">
+        <button type="button" class="btn-accent btn-play-again" id="play-again-btn">Play Again</button>
+        <button type="button" class="btn-secondary btn-return-home" id="return-home-btn">Return home</button>
+      </div>
     </div>
   `;
   matchOverlay.classList.remove('hidden');
   $('#play-again-btn')?.addEventListener('click', playAgain, { once: true });
+  $('#return-home-btn')?.addEventListener('click', returnToHome, { once: true });
   if (typeof MatchFx !== 'undefined') {
     if (isWin) {
       MatchFx.playWin();
@@ -1671,6 +1699,13 @@ async function refreshBalance() {
 
 // ── INIT ───────────────────────────────────────────────
 (async () => {
+  const urlParams = new URLSearchParams(location.search);
+  directMatchRoomId = urlParams.get('match');
+  if (directMatchRoomId) {
+    matchOnlyMode = true;
+    document.body.classList.add('match-only');
+  }
+
   try {
     const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
     if (res.ok) {

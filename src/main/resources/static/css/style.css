@@ -1513,6 +1513,151 @@ button:not(:disabled):hover {
   animation: cardBounceIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+.match-result-card .result-actions {
+  display: flex;
+  justify-content: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+  margin-top: 1.4rem;
+}
+
+.btn-return-home {
+  min-width: 130px;
+}
+
+.match-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin-bottom: 1rem;
+}
+
+.match-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  color: var(--ink-soft);
+  font-size: 0.96rem;
+}
+
+.round-timer {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  padding: 0.7rem 1rem;
+  border-radius: 999px;
+  border: 2px dashed var(--ink);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 0.96rem;
+}
+
+.round-timer::before {
+  content: '⏱';
+}
+
+.match-info-message {
+  border: 2px dashed var(--line);
+  border-radius: 18px;
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--ink);
+  font-size: 0.98rem;
+  min-height: 3rem;
+  display: flex;
+  align-items: center;
+}
+
+.profile-hover-card {
+  position: fixed;
+  z-index: 9999;
+  width: min(360px, 92vw);
+  border: 2px solid var(--ink);
+  background: rgba(253, 252, 247, 0.98);
+  border-radius: 20px;
+  box-shadow: 0 16px 36px rgba(22, 62, 121, 0.18);
+}
+
+.profile-hover-inner {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.profile-hover-avatar-wrap {
+  flex-shrink: 0;
+}
+
+.profile-hover-avatar {
+  width: 76px;
+  height: 76px;
+  object-fit: cover;
+  border-radius: 18px;
+  border: 2px solid var(--ink);
+}
+
+.profile-hover-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.profile-hover-name {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.profile-hover-meta {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.profile-hover-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem 0.75rem;
+  margin-top: 0.55rem;
+}
+
+.hover-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.92rem;
+}
+
+.hover-label {
+  color: var(--ink-soft);
+}
+
+body.match-only header,
+body.match-only #top-bar,
+body.match-only #wallet-section,
+body.match-only #lobby-section,
+body.match-only #public-rooms-section,
+body.match-only #leaderboard-section,
+body.match-only #room-chat-section,
+body.match-only #global-chat-aside,
+body.match-only .chat-aside,
+body.match-only .public-rooms,
+body.match-only .leaderboard {
+  display: none !important;
+}
+
+body.match-only .game-layout {
+  grid-template-columns: 1fr;
+  gap: 0;
+}
+
+body.match-only .game-main {
+  width: 100%;
+}
+
 @keyframes cardBounceIn {
   0%   { opacity: 0; transform: scale(0.5) rotate(-5deg); }
   60%  { transform: scale(1.05) rotate(1deg); }
