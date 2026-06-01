@@ -32,6 +32,11 @@ const profileImage = $('#profile-image');
 const profileButton = $('#profile-button');
 const profileModal = $('#profile-modal');
 const closeProfileModalBtn = $('#close-profile-modal');
+const depositVerifiedModal = $('#deposit-verified-modal');
+const closeDepositVerifiedModalBtn = $('#close-deposit-verified-modal');
+const depositVerifiedXanax = $('#deposit-verified-xanax');
+const depositVerifiedMoola = $('#deposit-verified-moola');
+const depositVerifiedBalance = $('#deposit-verified-balance');
 const statsUsername = $('#stats-username');
 const statBetted = $('#stat-betted');
 const statWon = $('#stat-won');
@@ -76,7 +81,7 @@ const matchRoomChatInput = $('#match-room-chat-input');
 const choiceReveal = $('#choice-reveal');
 const matchOverlay = $('#match-overlay');
 const matchArena = $('#match-arena');
-const matchConfetti = $('#match-confetti');
+const matchSketchFx = $('#match-sketch-fx');
 const matchFxLayer = $('#match-fx-layer');
 
 // ── UTILITIES ──────────────────────────────────────────
@@ -247,6 +252,7 @@ function setLoggedOut() {
   clearChatLog(roomChatLog);
   clearChatLog(matchRoomChatLog);
   if (profileModal) profileModal.classList.add('hidden');
+  closeDepositVerifiedModal();
   syncNotebookDoodles();
 }
 
@@ -399,7 +405,7 @@ function handleWsMessage(data) {
       matchRoomChat.classList.remove('hidden');
       matchOverlay.classList.add('hidden');
       matchOverlay.innerHTML = '';
-      if (matchConfetti) matchConfetti.innerHTML = '';
+      if (matchSketchFx) matchSketchFx.innerHTML = '';
       hideChoiceReveal();
       syncNotebookDoodles();
       const p1Btn = $('#p1-score-name');
@@ -438,8 +444,9 @@ function handleWsMessage(data) {
       loadMatchPlayerProfile(data.player1Id, 'p1');
       loadMatchPlayerProfile(data.player2Id, 'p2');
       if (typeof MatchFx !== 'undefined') {
-        MatchFx.spawnConfetti(matchConfetti, 35, false);
-        MatchFx.floatText(matchFxLayer, 'FIGHT!');
+        MatchFx.spawnNotebookCelebration(matchSketchFx, { intensity: 'light', mood: 'fight' });
+        const fightLabel = MatchFx.randomMoodLabel ? MatchFx.randomMoodLabel('fight') : 'SHOOT!';
+        MatchFx.floatText(matchFxLayer, fightLabel, 'fx-pop fx-stamp');
       }
       break;
 
@@ -494,11 +501,12 @@ function handleWsMessage(data) {
           if (typeof MatchFx !== 'undefined') {
             if (iWonRound) {
               MatchFx.playRoundWin();
-              MatchFx.spawnConfetti(matchConfetti, 45, true);
-              MatchFx.floatText(matchFxLayer, '+1 ROUND!');
+              MatchFx.spawnNotebookCelebration(matchSketchFx, { intensity: 'medium', burst: true, mood: 'win' });
+              MatchFx.floatText(matchFxLayer, '+1 ROUND!', 'fx-pop fx-stamp');
               MatchFx.flashArena(matchArena, true);
             } else if (iLostRound) {
-              MatchFx.floatText(matchFxLayer, 'OUCH', 'fx-pop lose-pop');
+              MatchFx.spawnNotebookCelebration(matchSketchFx, { intensity: 'light', burst: true, mood: 'fight' });
+              MatchFx.floatText(matchFxLayer, 'OUCH', 'fx-pop lose-pop fx-stamp');
               MatchFx.flashArena(matchArena, false);
             }
           }
@@ -670,8 +678,13 @@ logoutBtn.addEventListener('click', async () => {
 
 // ── DEPOSIT ────────────────────────────────────────────
 verifyDepositBtn.addEventListener('click', async () => {
+  if (!currentUser?.torn_id) {
+    showMsg(depositMessage, 'Log in first to verify a deposit.', true);
+    return;
+  }
   verifyDepositBtn.disabled = true;
   verifyDepositBtn.textContent = 'Verifying...';
+  depositMessage?.classList.add('hidden');
   try {
     const res = await fetch('/api/deposit', {
       method: 'POST',
@@ -680,11 +693,17 @@ verifyDepositBtn.addEventListener('click', async () => {
       body: JSON.stringify({ tornId: currentUser.torn_id })
     });
     const data = await res.json();
-    if (data.success) {
-      showMsg(depositMessage, data.message, false);
+    const credited = asNumber(data.new_moola ?? data.moola_credited);
+    const wasVerified = data.verified === true || credited > 0;
+
+    if (data.success && wasVerified && credited > 0) {
       if (data.site_balance !== undefined) updateBalance(data.site_balance);
+      showDepositVerifiedModal(data);
+    } else if (data.success) {
+      if (data.site_balance !== undefined) updateBalance(data.site_balance);
+      showMsg(depositMessage, data.message || 'No new deposit found yet.', false);
     } else {
-      showMsg(depositMessage, data.error || 'Deposit failed.', true);
+      showMsg(depositMessage, data.error || 'Deposit verification failed.', true);
     }
   } catch (err) {
     showMsg(depositMessage, 'Network error.', true);
@@ -800,6 +819,51 @@ profileModal?.addEventListener('click', (e) => {
   if (e.target === profileModal) profileModal.classList.add('hidden');
 });
 
+function closeDepositVerifiedModal() {
+  depositVerifiedModal?.classList.add('hidden');
+}
+
+function showDepositVerifiedModal(data) {
+  const xanax = asNumber(data.xanax_amount ?? (data.new_moola / (data.moola_per_xanax || 4)));
+  const moola = asNumber(data.moola_credited ?? data.new_moola);
+  const balance = asNumber(data.site_balance);
+
+  if (depositVerifiedXanax) {
+    depositVerifiedXanax.textContent = xanax === 1 ? '1 Xanax' : `${xanax.toLocaleString()} Xanax`;
+  }
+  if (depositVerifiedMoola) {
+    depositVerifiedMoola.innerHTML = typeof MoolaIcon !== 'undefined'
+      ? `+${MoolaIcon.amountHtml(moola)}`
+      : `+${moola.toLocaleString()} Moola`;
+  }
+  if (depositVerifiedBalance) {
+    depositVerifiedBalance.innerHTML = typeof MoolaIcon !== 'undefined'
+      ? MoolaIcon.amountHtml(balance)
+      : balance.toLocaleString();
+  }
+
+  depositVerifiedModal?.classList.remove('hidden');
+  if (typeof MoolaIcon !== 'undefined') {
+    MoolaIcon.mountIcons();
+  }
+  if (typeof MatchFx !== 'undefined' && depositVerifiedModal) {
+    let fxLayer = depositVerifiedModal.querySelector('.deposit-verified-fx');
+    if (!fxLayer) {
+      fxLayer = document.createElement('div');
+      fxLayer.className = 'match-sketch-fx deposit-verified-fx';
+      fxLayer.setAttribute('aria-hidden', 'true');
+      depositVerifiedModal.insertBefore(fxLayer, depositVerifiedModal.firstChild);
+    }
+    fxLayer.innerHTML = '';
+    MatchFx.spawnNotebookCelebration(fxLayer, { intensity: 'medium', burst: true, mood: 'win' });
+  }
+}
+
+closeDepositVerifiedModalBtn?.addEventListener('click', closeDepositVerifiedModal);
+depositVerifiedModal?.addEventListener('click', (e) => {
+  if (e.target === depositVerifiedModal) closeDepositVerifiedModal();
+});
+
 // ── CHAT ───────────────────────────────────────────────
 function sendGlobalChat(message) {
   sendWs({
@@ -858,8 +922,8 @@ document.addEventListener('click', (e) => {
 });
 
 function formatPlayerName(name, tornId) {
-  if (tornId === 'BOT_BAINING' || name === 'BaiNing') {
-    return 'BaiNing';
+  if (tornId === 'BOT_BAINING' || name === 'BaiNing' || name === 'The House') {
+    return 'The House';
   }
   return name;
 }
@@ -936,8 +1000,8 @@ async function showPlayerProfile(tornId) {
 }
 
 function showBotProfile() {
-  openProfileModal('BaiNing', {
-    username: 'BaiNing',
+  openProfileModal('The House', {
+    username: 'The House',
     total_moola_betted: 1000000,
     total_moola_won: 1250000,
     total_moola_lost: 800000,
@@ -1093,11 +1157,11 @@ function showMatchOverlay(isWin, winnerName, winnings, rake, p1Wins, p2Wins, isF
     if (isWin) {
       MatchFx.playWin();
       const overlayFx = document.createElement('div');
-      overlayFx.className = 'match-confetti';
+      overlayFx.className = 'match-sketch-fx match-sketch-fx--overlay';
       overlayFx.setAttribute('aria-hidden', 'true');
       matchOverlay.prepend(overlayFx);
-      MatchFx.spawnConfetti(overlayFx, 140, true);
-      MatchFx.spawnConfetti(matchConfetti, 60, true);
+      MatchFx.spawnNotebookCelebration(overlayFx, { intensity: 'heavy', burst: true, mood: 'big' });
+      MatchFx.spawnNotebookCelebration(matchSketchFx, { intensity: 'medium', burst: true, mood: 'win' });
       MatchFx.screenShake(matchArena, 1.5);
     } else {
       MatchFx.playLose();
@@ -1109,7 +1173,7 @@ function resetMatchUI() {
   matchOverlay.classList.add('hidden');
   matchOverlay.innerHTML = '';
   matchRoomChat.classList.add('hidden');
-  if (matchConfetti) matchConfetti.innerHTML = '';
+  if (matchSketchFx) matchSketchFx.innerHTML = '';
   currentRoomId = null;
   pendingMatchEnd = null;
   hideChoiceReveal();

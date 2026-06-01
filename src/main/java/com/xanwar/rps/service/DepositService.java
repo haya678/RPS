@@ -84,6 +84,7 @@ public class DepositService {
 
         if (totalMoola == 0) {
             result.put("success", true);
+            result.put("verified", false);
             StringBuilder msg = new StringBuilder();
             msg.append("No new deposits found for Torn ID ").append(userTornId).append(". ");
             msg.append("Send Xanax to Hannath [3961385] with message \"").append(requiredMessage);
@@ -94,14 +95,20 @@ public class DepositService {
             result.put("message", msg.toString());
             result.put("site_balance", user.getSiteBalance());
             result.put("new_moola", 0);
+            result.put("moola_per_xanax", moolaPerXanax);
             return result;
         }
 
+        int xanaxCredited = (int) (totalMoola / moolaPerXanax);
         user.setSiteBalance(user.getSiteBalance() + totalMoola);
         userRepository.save(user);
         result.put("success", true);
-        result.put("message", "Verified deposit: "
-                + (totalMoola / moolaPerXanax) + " Xanax → " + totalMoola + " Moola");
+        result.put("verified", true);
+        result.put("xanax_amount", xanaxCredited);
+        result.put("moola_credited", totalMoola);
+        result.put("moola_per_xanax", moolaPerXanax);
+        result.put("message", "Deposit verified! "
+                + xanaxCredited + " Xanax → " + totalMoola + " Moola");
         result.put("site_balance", user.getSiteBalance());
         result.put("new_moola", totalMoola);
         return result;

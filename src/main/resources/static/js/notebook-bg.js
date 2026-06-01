@@ -1,5 +1,5 @@
 /**
- * Notebook doodles on the homepage (login + lobby), hidden during matches.
+ * Full-page notebook doodles — always visible behind the UI.
  */
 (function initSiteNotebook() {
   function notebookSeed() {
@@ -7,24 +7,12 @@
     return tornId ? `site-${tornId}` : 'site-torn-notebook';
   }
 
-  function isHomepageVisible() {
-    const match = document.getElementById('game-section-panel');
-    if (!match) return true;
-
-    const auth = document.getElementById('auth-section');
-    const game = document.getElementById('game-section');
-    const authVisible = auth && !auth.classList.contains('hidden');
-    const gameVisible = game && !game.classList.contains('hidden');
-    const matchVisible = !match.classList.contains('hidden');
-    return authVisible || (gameVisible && !matchVisible);
-  }
-
   function syncVisibility() {
     const canvas = document.getElementById('notebook-doodle-canvas');
     if (!canvas) return false;
-    const show = isHomepageVisible();
-    canvas.classList.toggle('hidden', !show);
-    return show;
+    canvas.classList.remove('hidden');
+    document.body.classList.add('notebook-site');
+    return true;
   }
 
   function paint() {
@@ -48,7 +36,5 @@
     schedulePaint();
   }
 
-  window.addEventListener('resize', () => {
-    if (isHomepageVisible()) schedulePaint();
-  });
+  window.addEventListener('resize', schedulePaint);
 })();

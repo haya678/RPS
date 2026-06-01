@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RPS Battle - Moola Betting</title>
+  <title>RPS Battle</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
@@ -86,7 +86,7 @@
             </label>
             <div style="display: flex; gap: 0.5rem; width: 100%;">
               <button id="create-room-btn" class="btn-accent" style="flex: 1;">Create Room</button>
-              <button id="play-bot-btn" class="btn-secondary play-bot-btn" style="flex: 1;" type="button">Play BaiNing <span data-baining-snowflake class="baining-snowflake-slot" aria-hidden="true"></span></button>
+              <button id="play-bot-btn" class="btn-secondary play-bot-btn" style="flex: 1;" type="button">Play Against The House <span data-baining-snowflake class="baining-snowflake-slot" aria-hidden="true"></span></button>
             </div>
           </div>
           <div class="join-room">
@@ -130,7 +130,7 @@
 
       <section id="game-section-panel" class="panel hidden">
         <div id="match-arena" class="match-arena">
-          <div id="match-confetti" class="match-confetti" aria-hidden="true"></div>
+          <div id="match-sketch-fx" class="match-sketch-fx" aria-hidden="true"></div>
           <div id="match-fx-layer" class="match-fx-layer" aria-hidden="true"></div>
 
           <div class="match-arena-content">
@@ -248,6 +248,33 @@
       </aside>
     </div>
   </main>
+
+  <div id="deposit-verified-modal" class="modal hidden" role="dialog" aria-labelledby="deposit-verified-title" aria-modal="true">
+    <div class="modal-card panel deposit-verified-card">
+      <div class="deposit-verified-badge" aria-hidden="true">✓</div>
+      <h2 id="deposit-verified-title">Deposit Verified</h2>
+      <p class="deposit-verified-lead">Your Xanax deposit was found and credited.</p>
+      <div class="deposit-verified-breakdown">
+        <div class="deposit-verified-row">
+          <span class="deposit-verified-label">Xanax received</span>
+          <strong id="deposit-verified-xanax">0</strong>
+        </div>
+        <div class="deposit-verified-row deposit-verified-rate">
+          <span class="deposit-verified-label">Rate</span>
+          <span>1 Xanax = 4 <span data-moola-icon class="wallet-moola-inline"></span></span>
+        </div>
+        <div class="deposit-verified-row deposit-verified-moola-row">
+          <span class="deposit-verified-label">Added to wallet</span>
+          <strong id="deposit-verified-moola" class="deposit-verified-moola"></strong>
+        </div>
+        <div class="deposit-verified-row deposit-verified-balance-row">
+          <span class="deposit-verified-label">New balance</span>
+          <strong id="deposit-verified-balance" class="deposit-verified-balance"></strong>
+        </div>
+      </div>
+      <button id="close-deposit-verified-modal" class="btn-accent" type="button">Got it</button>
+    </div>
+  </div>
 
   <div id="profile-modal" class="modal hidden">
     <div class="modal-card panel">

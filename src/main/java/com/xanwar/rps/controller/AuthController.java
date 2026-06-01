@@ -98,7 +98,7 @@ public class AuthController {
         if ("BOT_BAINING".equals(tornId)) {
             Map<String, Object> body = new HashMap<>();
             body.put("torn_id", "BOT_BAINING");
-            body.put("username", "BaiNing");
+            body.put("username", "The House");
             body.put("site_balance", 9999999L);
             body.put("profile_image_url", "/baining.jpg");
             body.put("total_moola_betted", 1000000L);

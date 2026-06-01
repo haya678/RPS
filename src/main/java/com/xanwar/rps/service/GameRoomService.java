@@ -79,7 +79,7 @@ public class GameRoomService {
         sessionRegistry.bindPlayer(session, tornId, username, roomId);
 
         if (playWithBot) {
-            room.tryStartMatch("BOT_BAINING", "BaiNing", "BOT_SESSION");
+            room.tryStartMatch("BOT_BAINING", "The House", "BOT_SESSION");
             ObjectNode response = objectMapper.createObjectNode();
             response.put("action", "matchStarted");
             response.put("roomId", roomId);
@@ -521,7 +521,7 @@ public class GameRoomService {
         chatMsg.put("scope", "room");
         chatMsg.put("roomId", room.getRoomId());
         chatMsg.put("tornId", "BOT_BAINING");
-        chatMsg.put("username", "BaiNing");
+        chatMsg.put("username", "The House");
         chatMsg.put("message", message);
         chatMsg.put("timestamp", System.currentTimeMillis());
         sessionRegistry.sendToRoom(room, chatMsg);

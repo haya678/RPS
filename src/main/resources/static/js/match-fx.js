@@ -1,11 +1,11 @@
 /**
- * Match visuals: notebook doodles, Torn notes, confetti, screen shake, Web Audio SFX.
+ * Match visuals: notebook doodles, ink bursts, sketch flecks, screen shake, Web Audio SFX.
  */
 const MatchFx = (() => {
   const INK = 'rgba(22, 62, 121, 0.55)';
   const INK_LIGHT = 'rgba(174, 203, 247, 0.45)';
-  const INK_FAINT = 'rgba(22, 62, 121, 0.18)';
-  const INK_NOTE = 'rgba(22, 62, 121, 0.42)';
+  const INK_FAINT = 'rgba(22, 62, 121, 0.22)';
+  const INK_NOTE = 'rgba(22, 62, 121, 0.48)';
 
   const TORN_NOTES = [
     'deposit msg must say RPS !!!',
@@ -429,26 +429,140 @@ const MatchFx = (() => {
     setTimeout(() => arena.classList.remove('flash-win', 'flash-lose'), 450);
   }
 
-  function spawnConfetti(container, amount = 80, burst = false) {
+  const SKETCH_FLECK = {
+    rock: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M7 17 Q5 11 10 9 Q14 7 19 10 Q22 8 25 11 Q27 15 25 20 Q23 25 18 26 L14 27 Q10 26 8 23 Q6 21 7 17Z" fill="none" stroke="#163e79" stroke-width="1.4"/></svg>',
+    paper: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 23 L9 11 Q9 7 13 6 L21 5 Q25 5 26 10 L27 19 Q27 23 22 24 L14 26 Q9 26 9 23Z" fill="rgba(240,246,255,0.85)" stroke="#163e79" stroke-width="1.4"/></svg>',
+    scissors: '<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 23 Q7 20 8 17 Q10 14 13 12 L16 11 Q20 10 22 13 Q24 16 23 19 Q22 23 18 26 Q14 27 11 25 Q9 24 9 23Z" fill="rgba(240,246,255,0.85)" stroke="#163e79" stroke-width="1.4"/><path d="M13 12 Q11 6 14 4 Q16 2 17 5 L16 12" fill="none" stroke="#3d69ad" stroke-width="1.2"/></svg>'
+  };
+
+  const MOOD_LABELS = {
+    fight: ['SHOOT!', 'DUEL!', 'INK IT!'],
+    win: ['NICE!', '+1', 'SKETCHED!'],
+    big: ['GG!', 'MOOLA!', 'LEGEND']
+  };
+
+  function removeAfter(el, ms) {
+    setTimeout(() => el.remove(), ms);
+  }
+
+  function spawnInkBlot(container, burst) {
+    const blot = document.createElement('span');
+    blot.className = 'fx-ink-blot';
+    const size = 8 + Math.random() * 22;
+    blot.style.width = `${size}px`;
+    blot.style.height = `${size * (0.7 + Math.random() * 0.5)}px`;
+    blot.style.left = burst ? `${38 + Math.random() * 24}%` : `${Math.random() * 100}%`;
+    blot.style.top = burst ? `${28 + Math.random() * 44}%` : `${-5 + Math.random() * 30}%`;
+    const delay = Math.random() * (burst ? 0.25 : 0.8);
+    const dur = 1.4 + Math.random() * 1.2;
+    blot.style.animationDelay = `${delay}s`;
+    blot.style.animationDuration = `${dur}s`;
+    blot.style.setProperty('--fx-rot', `${Math.random() * 120 - 60}deg`);
+    blot.style.setProperty('--fx-drift', `${(Math.random() - 0.5) * 80}px`);
+    container.appendChild(blot);
+    removeAfter(blot, (delay + dur) * 1000 + 300);
+  }
+
+  function spawnSketchFleck(container, burst) {
+    const choices = ['rock', 'paper', 'scissors'];
+    const choice = choices[Math.floor(Math.random() * choices.length)];
+    const fleck = document.createElement('span');
+    fleck.className = 'fx-sketch-fleck';
+    fleck.innerHTML = SKETCH_FLECK[choice];
+    const size = 22 + Math.random() * 28;
+    fleck.style.width = `${size}px`;
+    fleck.style.height = `${size}px`;
+    fleck.style.left = burst ? `${32 + Math.random() * 36}%` : `${Math.random() * 92}%`;
+    fleck.style.top = burst ? `${20 + Math.random() * 50}%` : `${-8 + Math.random() * 20}%`;
+    const delay = Math.random() * (burst ? 0.35 : 1);
+    const dur = 2 + Math.random() * 1.4;
+    fleck.style.animationDelay = `${delay}s`;
+    fleck.style.animationDuration = `${dur}s`;
+    fleck.style.setProperty('--fx-rot', `${Math.random() * 540 - 270}deg`);
+    fleck.style.setProperty('--fx-rise', `${60 + Math.random() * 120}px`);
+    container.appendChild(fleck);
+    removeAfter(fleck, (delay + dur) * 1000 + 300);
+  }
+
+  function spawnPaperScrap(container, burst) {
+    const scrap = document.createElement('span');
+    scrap.className = 'fx-paper-scrap';
+    const w = 10 + Math.random() * 18;
+    const h = 14 + Math.random() * 22;
+    scrap.style.width = `${w}px`;
+    scrap.style.height = `${h}px`;
+    scrap.style.left = burst ? `${35 + Math.random() * 30}%` : `${Math.random() * 100}%`;
+    const delay = Math.random() * (burst ? 0.3 : 0.9);
+    const dur = 2.2 + Math.random() * 1.3;
+    scrap.style.animationDelay = `${delay}s`;
+    scrap.style.animationDuration = `${dur}s`;
+    scrap.style.setProperty('--fx-rot', `${Math.random() * 720 - 360}deg`);
+    container.appendChild(scrap);
+    removeAfter(scrap, (delay + dur) * 1000 + 300);
+  }
+
+  function spawnHighlighterSwipe(container) {
+    const streak = document.createElement('div');
+    streak.className = 'fx-highlighter-streak';
+    container.appendChild(streak);
+    removeAfter(streak, 1400);
+  }
+
+  function spawnMoolaSpark(container, burst) {
+    const spark = document.createElement('span');
+    spark.className = 'fx-moola-spark';
+    spark.textContent = '$';
+    spark.style.left = burst ? `${40 + Math.random() * 20}%` : `${Math.random() * 100}%`;
+    spark.style.top = burst ? `${30 + Math.random() * 40}%` : `${Math.random() * 40}%`;
+    const delay = Math.random() * 0.5;
+    const dur = 1.6 + Math.random() * 0.8;
+    spark.style.animationDelay = `${delay}s`;
+    spark.style.animationDuration = `${dur}s`;
+    spark.style.setProperty('--fx-rise', `${40 + Math.random() * 80}px`);
+    container.appendChild(spark);
+    removeAfter(spark, (delay + dur) * 1000 + 200);
+  }
+
+  /**
+   * Notebook-themed celebration: ink, RPS sketches, highlighter, torn paper, moola sparks.
+   * @param {HTMLElement} container
+   * @param {{ intensity?: 'light'|'medium'|'heavy', burst?: boolean, mood?: 'fight'|'win'|'big' }} options
+   */
+  function spawnNotebookCelebration(container, options = {}) {
     if (!container) return;
-    const colors = ['#163e79', '#3d69ad', '#ffeb3b', '#4caf50', '#e91e63', '#00bcd4'];
-    for (let i = 0; i < amount; i++) {
-      const piece = document.createElement('span');
-      piece.className = 'confetti-piece';
-      const left = burst ? 40 + Math.random() * 20 : Math.random() * 100;
-      const delay = Math.random() * (burst ? 0.4 : 1.2);
-      const dur = 1.8 + Math.random() * 1.5;
-      const rot = Math.random() * 720 - 360;
-      piece.style.left = `${left}%`;
-      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
-      piece.style.animationDelay = `${delay}s`;
-      piece.style.animationDuration = `${dur}s`;
-      piece.style.setProperty('--rot', `${rot}deg`);
-      piece.style.width = `${6 + Math.random() * 8}px`;
-      piece.style.height = `${10 + Math.random() * 12}px`;
-      container.appendChild(piece);
-      setTimeout(() => piece.remove(), (delay + dur) * 1000 + 200);
+    const intensity = options.intensity || 'medium';
+    const burst = !!options.burst;
+    const mood = options.mood || 'win';
+
+    const tiers = {
+      light: { ink: 6, sketch: 5, paper: 3, moola: 2 },
+      medium: { ink: 12, sketch: 10, paper: 6, moola: 5 },
+      heavy: { ink: 22, sketch: 18, paper: 12, moola: 10 }
+    };
+    const counts = tiers[intensity] || tiers.medium;
+
+    if (mood === 'win' || mood === 'big') {
+      spawnHighlighterSwipe(container);
     }
+
+    for (let i = 0; i < counts.ink; i++) spawnInkBlot(container, burst);
+    for (let i = 0; i < counts.sketch; i++) spawnSketchFleck(container, burst);
+    for (let i = 0; i < counts.paper; i++) spawnPaperScrap(container, burst);
+    for (let i = 0; i < counts.moola; i++) spawnMoolaSpark(container, burst);
+
+    if (mood === 'big' && burst) {
+      setTimeout(() => spawnHighlighterSwipe(container), 180);
+    }
+  }
+
+  function spawnConfetti(container, amount = 80, burst = false) {
+    const intensity = amount > 100 ? 'heavy' : amount > 50 ? 'medium' : 'light';
+    spawnNotebookCelebration(container, { intensity, burst, mood: burst ? 'big' : 'win' });
+  }
+
+  function randomMoodLabel(mood) {
+    const list = MOOD_LABELS[mood] || MOOD_LABELS.win;
+    return list[Math.floor(Math.random() * list.length)];
   }
 
   function floatText(container, text, className = 'fx-pop') {
@@ -498,7 +612,9 @@ const MatchFx = (() => {
     paintGameNotebookBackground,
     screenShake,
     flashArena,
+    spawnNotebookCelebration,
     spawnConfetti,
+    randomMoodLabel,
     floatText,
     playSelect,
     playReveal,
