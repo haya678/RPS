@@ -364,6 +364,15 @@ function setLoggedIn(user) {
   loadLeaderboard();
   syncNotebookDoodles();
   mountGameUiDecorations();
+
+  if (matchOnlyMode && directMatchRoomId) {
+    sendWs({
+      action: 'joinRoom',
+      tornId: currentUser.torn_id,
+      username: currentUser.username,
+      roomId: directMatchRoomId
+    });
+  }
 }
 
 function mountGameUiDecorations() {
@@ -1029,7 +1038,13 @@ function setAuthMode(mode) {
   const isSignup = mode === 'signup';
   tabSignup.classList.toggle('active', isSignup);
   tabLogin.classList.toggle('active', !isSignup);
-  signupNote?.classList.toggle('hidden', !isSignup);
+  if (signupNote) {
+    if (isSignup) {
+      signupNote.classList.remove('hidden');
+    } else {
+      signupNote.classList.add('hidden');
+    }
+  }
   $('#auth-btn').textContent = isSignup ? 'Sign Up' : 'Log In';
 }
 
