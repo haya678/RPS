@@ -15,10 +15,12 @@
   <main>
     <section id="admin-auth" class="panel">
       <h2>Admin Login</h2>
+      <p class="info">Use the same Torn API key as the house account (<code>TORN_API_MY_KEY</code>), or the legacy admin secret.</p>
       <form id="admin-auth-form">
-        <input type="password" id="admin-key-input" placeholder="Admin secret key..." required>
+        <input type="password" id="admin-key-input" placeholder="House Torn API key..." required autocomplete="off">
         <button type="submit">Login</button>
       </form>
+      <div id="admin-auth-error" class="error hidden"></div>
     </section>
 
     <section id="admin-dashboard" class="panel hidden">

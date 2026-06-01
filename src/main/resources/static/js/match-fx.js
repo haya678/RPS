@@ -8,7 +8,7 @@ const MatchFx = (() => {
   const INK_NOTE = 'rgba(22, 62, 121, 0.42)';
 
   const TORN_NOTES = [
-    'deposit msg must say "rps" !!!',
+    'deposit msg must say RPS !!!',
     'xanax → moola (do the math)',
     'hospital in 3... 2...',
     'got mugged again lol',

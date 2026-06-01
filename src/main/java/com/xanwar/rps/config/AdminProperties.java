@@ -14,8 +14,4 @@ public class AdminProperties {
     public void setSecretKey(String secretKey) {
         this.secretKey = secretKey;
     }
-
-    public boolean matchesKey(String provided) {
-        return provided != null && !provided.isBlank() && secretKey.equals(provided);
-    }
 }

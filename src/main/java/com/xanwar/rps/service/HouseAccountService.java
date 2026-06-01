@@ -23,8 +23,8 @@ public class HouseAccountService {
     private final TornDepositProperties depositProperties;
     private final GameProperties gameProperties;
 
-    private String recipientName = "house account";
-    private String recipientId = "";
+    private String recipientName;
+    private String recipientId;
 
     public HouseAccountService(
             TornApiClient tornApiClient,
@@ -36,6 +36,8 @@ public class HouseAccountService {
         this.tornApiProperties = tornApiProperties;
         this.depositProperties = depositProperties;
         this.gameProperties = gameProperties;
+        this.recipientName = depositProperties.getRecipientName();
+        this.recipientId = depositProperties.getRecipientId();
     }
 
     @PostConstruct
@@ -47,8 +49,14 @@ public class HouseAccountService {
         }
         try {
             JsonNode data = tornApiClient.fetchHouseBasic();
-            recipientName = data.path("name").asText("house account");
-            recipientId = String.valueOf(data.path("player_id").asInt());
+            String apiName = data.path("name").asText("");
+            int apiId = data.path("player_id").asInt(0);
+            if (!apiName.isBlank()) {
+                recipientName = apiName;
+            }
+            if (apiId > 0) {
+                recipientId = String.valueOf(apiId);
+            }
             log.info("Deposit recipient loaded: {} [{}]", recipientName, recipientId);
         } catch (Exception e) {
             log.error("Could not load house account from Torn API: {}", e.getMessage());

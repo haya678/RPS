@@ -28,8 +28,8 @@ Still add these manually:
 
 | Key | Value |
 |-----|--------|
-| `TORN_API_MY_KEY` | your Torn API key |
-| `ADMIN_SECRET_KEY` | long random string |
+| `TORN_API_MY_KEY` | Torn API key for house account (deposits + admin panel) |
+| `ADMIN_SECRET_KEY` | optional legacy admin password |
 
 **Optional** (only if not using linked `DATABASE_URL`):
 
@@ -41,7 +41,22 @@ Still add these manually:
 | `SPRING_DATASOURCE_DRIVER_CLASS_NAME` | `org.postgresql.Driver` |
 | `SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT` | `org.hibernate.dialect.PostgreSQLDialect` |
 
-**Wrong (causes crash):** `SPRING_DATASOURCE_URL=postgres://user:pass@host/db`
+**Wrong (causes crash):**
+
+- `SPRING_DATASOURCE_URL=postgres://user:pass@host/db` (not JDBC)
+- `SPRING_DATASOURCE_URL=jdbc:postgresql://user:pass@host/db` **without** `SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver` (MySQL driver error)
+
+**Correct manual JDBC (credentials separate):**
+
+```
+SPRING_DATASOURCE_URL=jdbc:postgresql://dpg-xxxx-a:5432/dbname?sslmode=require
+SPRING_DATASOURCE_USERNAME=your_user
+SPRING_DATASOURCE_PASSWORD=your_password
+SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
+SPRING_JPA_PROPERTIES_HIBERNATE_DIALECT=org.hibernate.dialect.PostgreSQLDialect
+```
+
+If you linked `DATABASE_URL` from Render, **delete** `SPRING_DATASOURCE_URL` entirely.
 
 ## 4. Push and deploy
 

@@ -142,16 +142,18 @@ async function loadDepositInstructions() {
     const res = await fetch('/api/deposit/instructions');
     if (!res.ok) throw new Error('failed');
     const data = await res.json();
-    const name = data.recipientName || 'the house account';
-    const msg = data.requiredMessage || 'rps';
+    const name = data.recipientName || 'Hannath';
+    const id = data.recipientId || '3961385';
+    const msg = data.requiredMessage || 'RPS';
     const hours = data.maxAgeHours ?? 72;
     el.innerHTML =
-      `Send Xanax to <strong>${escapeHtml(name)}</strong> [ID ${data.recipientId || '?'}] ` +
-      `with the exact message: <strong>"${escapeHtml(msg)}"</strong>. ` +
+      `Send Xanax to <strong>${escapeHtml(name)}</strong> [ID ${escapeHtml(id)}] ` +
+      `with the exact message: <strong>${escapeHtml(msg)}</strong>. ` +
       `Deposits must appear within <strong>${hours}</strong> hours.`;
   } catch (_) {
     el.innerHTML =
-      'Send Xanax to the house account with the exact message: <strong>"rps"</strong>.';
+      'Send Xanax to <strong>Hannath</strong> [ID 3961385] with the exact message: <strong>RPS</strong>. ' +
+      'Deposits must appear within <strong>72</strong> hours.';
   }
 }
 

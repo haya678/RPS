@@ -1,6 +1,6 @@
 package com.xanwar.rps.controller;
 
-import com.xanwar.rps.config.AdminProperties;
+import com.xanwar.rps.service.AdminAuthorizationService;
 import com.xanwar.rps.dto.AdminKeyRequest;
 import com.xanwar.rps.dto.WithdrawalDto;
 import com.xanwar.rps.repository.UserRepository;
@@ -20,19 +20,27 @@ public class AdminController {
 
     private final WithdrawalService withdrawalService;
     private final WalletService walletService;
-    private final AdminProperties adminProperties;
+    private final AdminAuthorizationService adminAuth;
     private final UserRepository userRepository;
 
     public AdminController(
             WithdrawalService withdrawalService,
             WalletService walletService,
-            AdminProperties adminProperties,
+            AdminAuthorizationService adminAuth,
             UserRepository userRepository
     ) {
         this.withdrawalService = withdrawalService;
         this.walletService = walletService;
-        this.adminProperties = adminProperties;
+        this.adminAuth = adminAuth;
         this.userRepository = userRepository;
+    }
+
+    @PostMapping("/verify")
+    public ResponseEntity<Map<String, Object>> verify(@Valid @RequestBody AdminKeyRequest request) {
+        if (!adminAuth.isAuthorized(request.adminKey())) {
+            return ResponseEntity.status(401).body(Map.of("success", false, "error", "Unauthorized."));
+        }
+        return ResponseEntity.ok(Map.of("success", true));
     }
 
     @GetMapping("/withdrawals")
@@ -53,7 +61,7 @@ public class AdminController {
 
     @GetMapping("/users")
     public ResponseEntity<Map<String, Object>> listUsers(@RequestParam String adminKey) {
-        if (!adminProperties.matchesKey(adminKey)) {
+        if (!adminAuth.isAuthorized(adminKey)) {
             return ResponseEntity.status(401).body(Map.of("success", false, "error", "Unauthorized."));
         }
 
@@ -80,7 +88,7 @@ public class AdminController {
     public ResponseEntity<Map<String, Object>> credit(
             @Valid @RequestBody CreditRequest request
     ) {
-        if (!adminProperties.matchesKey(request.adminKey())) {
+        if (!adminAuth.isAuthorized(request.adminKey())) {
             return ResponseEntity.status(401).body(Map.of("success", false, "error", "Unauthorized."));
         }
 

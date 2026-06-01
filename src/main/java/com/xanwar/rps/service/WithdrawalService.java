@@ -1,6 +1,5 @@
 package com.xanwar.rps.service;
 
-import com.xanwar.rps.config.AdminProperties;
 import com.xanwar.rps.config.GameProperties;
 import com.xanwar.rps.dto.WithdrawalDto;
 import com.xanwar.rps.model.User;
@@ -20,18 +19,18 @@ public class WithdrawalService {
     private final UserService userService;
     private final WithdrawalRepository withdrawalRepository;
     private final GameProperties gameProperties;
-    private final AdminProperties adminProperties;
+    private final AdminAuthorizationService adminAuth;
 
     public WithdrawalService(
             UserService userService,
             WithdrawalRepository withdrawalRepository,
             GameProperties gameProperties,
-            AdminProperties adminProperties
+            AdminAuthorizationService adminAuth
     ) {
         this.userService = userService;
         this.withdrawalRepository = withdrawalRepository;
         this.gameProperties = gameProperties;
-        this.adminProperties = adminProperties;
+        this.adminAuth = adminAuth;
     }
 
     @Transactional
@@ -104,7 +103,7 @@ public class WithdrawalService {
     }
 
     private void assertAdmin(String adminKey) {
-        if (!adminProperties.matchesKey(adminKey)) {
+        if (!adminAuth.isAuthorized(adminKey)) {
             throw new SecurityException("Unauthorized.");
         }
     }

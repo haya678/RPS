@@ -10,14 +10,34 @@ const withdrawalsList = $('#withdrawals-list');
 const usersList = $('#users-list');
 const userSearch = $('#user-search');
 
-adminAuthForm.addEventListener('submit', (e) => {
+adminAuthForm.addEventListener('submit', async (e) => {
   e.preventDefault();
-  adminKey = $('#admin-key-input').value.trim();
-  if (!adminKey) return;
-  adminAuth.classList.add('hidden');
-  adminDashboard.classList.remove('hidden');
-  loadWithdrawals();
-  loadUsers();
+  const key = $('#admin-key-input').value.trim();
+  const errEl = $('#admin-auth-error');
+  if (!key) return;
+
+  errEl.classList.add('hidden');
+  try {
+    const res = await fetch('/api/admin/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ adminKey: key })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      errEl.textContent = data.error || 'Not authorized for admin.';
+      errEl.classList.remove('hidden');
+      return;
+    }
+    adminKey = key;
+    adminAuth.classList.add('hidden');
+    adminDashboard.classList.remove('hidden');
+    loadWithdrawals();
+    loadUsers();
+  } catch (_) {
+    errEl.textContent = 'Could not reach server.';
+    errEl.classList.remove('hidden');
+  }
 });
 
 $('#refresh-users-btn').addEventListener('click', () => loadUsers());
