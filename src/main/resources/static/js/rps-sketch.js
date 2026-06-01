@@ -122,14 +122,16 @@ const RpsSketch = (() => {
         resolve();
         return;
       }
+      // Faster cycles for smoother flipbook, slower frame timing for naturality
       runFlipbook(host, finalChoice, {
-        frameMs: 100,
-        cycles: 7,
+        frameMs: 65,
+        cycles: 9,
         onDone: () => {
           if (label) {
             const names = { rock: 'Rock', paper: 'Paper', scissors: 'Scissors' };
             label.textContent = names[finalChoice] || '';
           }
+          host.classList.add('flip-settled');
           resolve();
         }
       });

@@ -1303,8 +1303,8 @@ button:not(:disabled):hover {
 }
 
 @keyframes revealAreaIn {
-  from { opacity: 0; transform: scale(0.92); }
-  to { opacity: 1; transform: scale(1); }
+  from { opacity: 0; transform: scale(0.92) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 .reveal-player {
@@ -1352,17 +1352,20 @@ button:not(:disabled):hover {
   position: relative;
   overflow: hidden;
   box-shadow: 2px 3px 6px var(--shadow);
+  perspective: 800px;
+  transform-style: preserve-3d;
 }
 
 .reveal-slot.clash-hit {
-  animation: clashHit 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: clashHit 0.65s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes clashHit {
-  0% { transform: scale(1); }
-  30% { transform: scale(1.15) rotate(-3deg); }
-  60% { transform: scale(0.95) rotate(2deg); }
-  100% { transform: scale(1); }
+  0% { transform: scale(0.95) rotateZ(-8deg) translateY(0); }
+  25% { transform: scale(1.08) rotateZ(4deg) translateY(-6px); }
+  50% { transform: scale(1.15) rotateZ(-2deg) translateY(0); }
+  75% { transform: scale(1.02) rotateZ(2deg) translateY(-2px); }
+  100% { transform: scale(1) rotateZ(0deg) translateY(0); }
 }
 
 .reveal-slot .flipbook {
@@ -1377,36 +1380,35 @@ button:not(:disabled):hover {
 .reveal-slot .flip-page {
   position: absolute;
   font-size: 3.5rem;
-  opacity: 0;
-  transform: scaleY(0);
+  opacity: 1;
+  transform: scaleY(1);
   transition: none;
 }
 
-.reveal-slot.flipping .flip-page {
-  animation: flipCycle 0.55s ease-in-out forwards;
+.reveal-slot .flip-page.flip-frame-pop {
+  animation: flipFramePop 0.06s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 }
 
-@keyframes flipCycle {
-  0%   { opacity: 1; transform: scaleY(1) rotateX(0deg) scale(1); }
-  35%  { opacity: 1; transform: scaleY(1.05) rotateX(0deg) scale(1.08); }
-  50%  { opacity: 0; transform: scaleY(0) rotateX(90deg) scale(0.8); }
-  100% { opacity: 0; transform: scaleY(0) rotateX(90deg); }
+@keyframes flipFramePop {
+  0%   { transform: scaleY(0.9) scaleX(0.95) rotateZ(1deg); }
+  50%  { transform: scaleY(1.1) scaleX(1.05) rotateZ(-0.5deg); }
+  100% { transform: scaleY(1) scaleX(1) rotateZ(0deg); }
 }
 
 .reveal-slot .flip-page.final {
-  opacity: 0;
-  transform: scaleY(0);
+  opacity: 1;
+  transform: scaleY(1);
 }
 
-.reveal-slot.resolved .flip-page.final {
-  animation: flipReveal 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+.reveal-slot .flip-page.flip-landed {
+  animation: flipLand 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
 }
 
-@keyframes flipReveal {
-  0%   { opacity: 0; transform: scaleY(0) rotateX(-90deg) scale(0.5); }
-  50%  { opacity: 1; transform: scaleY(1.25) rotateX(8deg) scale(1.15); }
-  75%  { transform: scaleY(0.95) rotateX(-3deg) scale(1.05); }
-  100% { opacity: 1; transform: scaleY(1) rotateX(0deg) scale(1); }
+@keyframes flipLand {
+  0%   { transform: scaleY(1.05) rotateZ(-2deg) scaleX(0.98); }
+  40%  { transform: scaleY(0.98) rotateZ(1deg) scaleX(1.08); }
+  70%  { transform: scaleY(1.02) rotateZ(-0.5deg) scaleX(0.99); }
+  100% { transform: scaleY(1) rotateZ(0deg) scaleX(1); }
 }
 
 .reveal-slot .choice-label {
@@ -1470,9 +1472,9 @@ button:not(:disabled):hover {
 
 /* ── WIN / LOSE OVERLAY ────────────────────────── */
 .match-overlay {
-  position: fixed;
+  position: absolute;
   inset: 0;
-  z-index: 99999;
+  z-index: 100;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1480,6 +1482,11 @@ button:not(:disabled):hover {
   backdrop-filter: blur(4px);
   animation: overlayFadeIn 0.3s ease-out;
   overflow: hidden;
+  pointer-events: auto;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
 }
 
 .match-overlay > .match-sketch-fx {
@@ -1491,7 +1498,7 @@ button:not(:disabled):hover {
 
 .match-overlay .match-result-card {
   position: relative;
-  z-index: 1;
+  z-index: 101;
 }
 
 @keyframes overlayFadeIn {

@@ -696,20 +696,6 @@ function handleWsMessage(data) {
       if (matchSketchFx) matchSketchFx.innerHTML = '';
       hideChoiceReveal();
       syncNotebookDoodles();
-      const p1Btn = $('#p1-score-name');
-      const p2Btn = $('#p2-score-name');
-      setPlayerLabel(p1Btn, data.player1, data.player1Id);
-      p1Btn.dataset.tornId = data.player1Id || '';
-      setPlayerLabel(p2Btn, data.player2, data.player2Id);
-      p2Btn.dataset.tornId = data.player2Id || '';
-      const p1AvBtn = $('#p1-avatar-btn');
-      const p2AvBtn = $('#p2-avatar-btn');
-      p1AvBtn.dataset.tornId = data.player1Id || '';
-      p2AvBtn.dataset.tornId = data.player2Id || '';
-      $('#p1-avatar').src = '';
-      $('#p2-avatar').src = '';
-      $('#p1-record').textContent = '';
-      $('#p2-record').textContent = '';
       syncDuelBanner(data.player1, data.player2, data.player1Id, data.player2Id);
       const potEl = $('#pot-display');
       if (potEl && typeof MoolaIcon !== 'undefined') {
@@ -771,20 +757,6 @@ function handleWsMessage(data) {
       if (matchSketchFx) matchSketchFx.innerHTML = '';
       hideChoiceReveal();
       syncNotebookDoodles();
-      const resumeP1Btn = $('#p1-score-name');
-      const resumeP2Btn = $('#p2-score-name');
-      setPlayerLabel(resumeP1Btn, data.player1, data.player1Id);
-      resumeP1Btn.dataset.tornId = data.player1Id || '';
-      setPlayerLabel(resumeP2Btn, data.player2, data.player2Id);
-      resumeP2Btn.dataset.tornId = data.player2Id || '';
-      const resumeP1Av = $('#p1-avatar-btn');
-      const resumeP2Av = $('#p2-avatar-btn');
-      resumeP1Av.dataset.tornId = data.player1Id || '';
-      resumeP2Av.dataset.tornId = data.player2Id || '';
-      $('#p1-avatar').src = '';
-      $('#p2-avatar').src = '';
-      $('#p1-record').textContent = '';
-      $('#p2-record').textContent = '';
       syncDuelBanner(data.player1, data.player2, data.player1Id, data.player2Id);
       const resumePotEl = $('#pot-display');
       if (resumePotEl && typeof MoolaIcon !== 'undefined') {
@@ -1424,12 +1396,10 @@ function setMatchAvatar(slot, url) {
 
 async function loadMatchPlayerProfile(tornId, slot) {
   if (!tornId) return;
-  const recordEl = $(`#${slot}-record`);
   const duelRecord = $(`#duel-${slot}-record`);
   if (tornId === 'BOT_BAINING') {
     setMatchAvatar(slot, '/baining.jpg');
     const rec = '5200W / 10000';
-    if (recordEl) recordEl.textContent = rec;
     if (duelRecord) duelRecord.textContent = rec;
     return;
   }
