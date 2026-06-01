@@ -1,0 +1,7 @@
+# Rename to application-local.properties and fill in real values.
+# Spring Boot auto-loads application-local.properties when present.
+
+# API key for the Torn account that RECEIVES deposit Xanax
+torn.api.my-key=your_actual_torn_api_key
+spring.datasource.password=your_db_password
+admin.secret-key=long_random_secret_for_admin_endpoints

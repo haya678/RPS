@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPS Battle - Moola Betting</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <canvas id="notebook-doodle-canvas" class="notebook-doodle-canvas" aria-hidden="true"></canvas>
+  <header>
+    <h1>RPS BATTLE</h1>
+    <p class="tagline">No guns, No armor. Just pure psychology.</p>
+  </header>
+
+  <main>
+    <section id="auth-section" class="panel">
+      <h2>Account Access</h2>
+      <p class="info">New users sign up with Torn API key + 4-digit PIN. Existing users log in with the same.</p>
+      <div class="auth-tabs">
+        <button id="tab-login" class="tab-btn active" type="button">Log In</button>
+        <button id="tab-signup" class="tab-btn" type="button">Sign Up</button>
+      </div>
+      <form id="auth-form">
+        <input type="password" id="api-key-input" placeholder="Paste Torn API key" required>
+        <input type="password" id="pin-input" placeholder="4-digit PIN" maxlength="4" inputmode="numeric" pattern="\d{4}" required>
+        <button type="submit" id="auth-btn">Log In</button>
+      </form>
+      <div id="auth-error" class="error hidden"></div>
+    </section>
+
+    <div id="game-section" class="hidden game-layout">
+      <div class="game-main">
+      <div id="top-bar" class="panel">
+        <div class="user-info">
+          <button id="profile-button" class="profile-button" type="button">
+            <img id="profile-image" class="profile-image" src="" alt="Profile picture">
+          </button>
+          <div>
+            <span id="display-username"></span>
+            <span id="display-balance" class="balance">0</span>
+          </div>
+        </div>
+        <div class="top-actions">
+          <a href="/admin.html" class="btn-link">Admin</a>
+          <button id="logout-btn" class="btn-secondary">Logout</button>
+        </div>
+      </div>
+
+      <section id="wallet-section" class="panel">
+        <h2>Wallet</h2>
+        <div class="wallet-actions">
+          <div class="wallet-col">
+            <p class="info" id="deposit-instructions">Loading deposit instructions...</p>
+            <p class="info">Rate: <strong>1 Xanax = 4 <span data-moola-icon></span></strong></p>
+            <button id="verify-deposit-btn" class="btn-accent">Verify Deposit</button>
+            <div id="deposit-message" class="hidden"></div>
+          </div>
+          <div class="wallet-col">
+            <p class="info">Withdraw <span data-moola-icon></span> back to Xanax (must be multiple of 4).</p>
+            <div class="withdraw-row">
+              <input type="number" id="withdraw-input" min="4" step="4" placeholder="Amount">
+              <button id="withdraw-btn" class="btn-secondary">Withdraw</button>
+            </div>
+            <div id="withdraw-message" class="hidden"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="lobby-section" class="panel">
+        <h2>Lobby</h2>
+        <div class="lobby-actions">
+          <div class="create-room">
+            <label>Bet Amount (<span data-moola-icon></span>):</label>
+            <input type="number" id="bet-input" min="4" step="4" value="100">
+            <label>Rounds (Best of):</label>
+            <select id="rounds-select">
+              <option value="1">Best of 1 (First to 1)</option>
+              <option value="3" selected>Best of 3 (First to 2)</option>
+              <option value="5">Best of 5 (First to 3)</option>
+              <option value="7">Best of 7 (First to 4)</option>
+            </select>
+            <label class="checkbox-label">
+              <input type="checkbox" id="public-room-checkbox">
+              Public room (listed for anyone to join)
+            </label>
+            <div style="display: flex; gap: 0.5rem; width: 100%;">
+              <button id="create-room-btn" class="btn-accent" style="flex: 1;">Create Room</button>
+              <button id="play-bot-btn" class="btn-secondary" style="flex: 1;" type="button">Play BaiNing ❄️</button>
+            </div>
+          </div>
+          <div class="join-room">
+            <label>Private room code:</label>
+            <input type="text" id="room-code-input" placeholder="Enter room code">
+            <button id="join-room-btn" class="btn-accent">Join Private</button>
+          </div>
+        </div>
+        <div id="lobby-message" class="hidden"></div>
+
+        <div id="public-rooms-section" class="public-rooms">
+          <div class="public-rooms-header">
+            <h3>Public Rooms</h3>
+            <button type="button" id="refresh-public-rooms-btn" class="btn-secondary btn-small">Refresh</button>
+          </div>
+          <ul id="public-rooms-list" class="public-rooms-list">
+            <li class="info">No public rooms open. Create one or check back soon.</li>
+          </ul>
+        </div>
+
+        <div id="leaderboard-section" class="leaderboard">
+          <div class="leaderboard-header">
+            <h3>🏆 Top Winners</h3>
+            <button type="button" id="refresh-leaderboard-btn" class="btn-secondary btn-small">Refresh</button>
+          </div>
+          <ol id="leaderboard-list" class="leaderboard-list">
+            <li class="info">Loading leaderboard...</li>
+          </ol>
+        </div>
+      </section>
+
+      <section id="room-chat-section" class="panel hidden">
+        <h2>Room Chat</h2>
+        <p class="info">Chat with players in your room: <span id="room-chat-code" class="code"></span></p>
+        <div id="room-chat-log" class="chat-log"></div>
+        <form id="room-chat-form" class="chat-form">
+          <input type="text" id="room-chat-input" maxlength="500" placeholder="Message room..." autocomplete="off">
+          <button type="submit" class="btn-secondary">Send</button>
+        </form>
+      </section>
+
+      <section id="game-section-panel" class="panel hidden">
+        <div id="match-arena" class="match-arena">
+          <div id="match-confetti" class="match-confetti" aria-hidden="true"></div>
+          <div id="match-fx-layer" class="match-fx-layer" aria-hidden="true"></div>
+
+          <div class="match-arena-content">
+        <h2>Match</h2>
+        <div id="match-info">
+          <p>Room: <span id="room-id-display" class="code"></span> | Pot: <span id="pot-display" class="gold"></span> | Round: <span id="round-display"></span></p>
+        </div>
+
+        <div id="duel-banner" class="duel-banner">
+          <div class="duel-side">
+            <button type="button" class="duel-avatar-btn player-avatar-btn" id="duel-p1-btn" data-torn-id="">
+              <img id="duel-p1-avatar" class="duel-avatar" src="" alt="">
+            </button>
+            <button type="button" class="duel-name player-profile-btn" id="duel-p1-name" data-torn-id=""></button>
+            <span class="duel-record" id="duel-p1-record"></span>
+          </div>
+          <div class="duel-vs-badge">VS</div>
+          <div class="duel-side duel-side-right">
+            <button type="button" class="duel-avatar-btn player-avatar-btn" id="duel-p2-btn" data-torn-id="">
+              <img id="duel-p2-avatar" class="duel-avatar" src="" alt="">
+            </button>
+            <button type="button" class="duel-name player-profile-btn" id="duel-p2-name" data-torn-id=""></button>
+            <span class="duel-record" id="duel-p2-record"></span>
+          </div>
+        </div>
+
+        <p id="score-target" class="score-target">First to 2</p>
+        <div id="score-board">
+          <div class="score-col">
+            <div class="score-player">
+              <button class="player-avatar-btn" id="p1-avatar-btn" data-torn-id="">
+                <img id="p1-avatar" class="score-avatar" src="" alt="">
+              </button>
+              <div class="score-player-info">
+                <button class="score-name player-profile-btn" id="p1-score-name" data-torn-id=""></button>
+                <span class="score-record" id="p1-record"></span>
+              </div>
+            </div>
+            <p id="p1-score" class="score-value">0</p>
+          </div>
+          <div class="score-col vs">VS</div>
+          <div class="score-col">
+            <div class="score-player">
+              <div class="score-player-info" style="text-align:right;">
+                <button class="score-name player-profile-btn" id="p2-score-name" data-torn-id=""></button>
+                <span class="score-record" id="p2-record"></span>
+              </div>
+              <button class="player-avatar-btn" id="p2-avatar-btn" data-torn-id="">
+                <img id="p2-avatar" class="score-avatar" src="" alt="">
+              </button>
+            </div>
+            <p id="p2-score" class="score-value">0</p>
+          </div>
+        </div>
+
+        <div id="rps-choices">
+          <button class="choice-btn" data-choice="rock" type="button">
+            <span class="choice-sketch" aria-hidden="true"></span>
+            <span>Rock</span>
+          </button>
+          <button class="choice-btn" data-choice="paper" type="button">
+            <span class="choice-sketch" aria-hidden="true"></span>
+            <span>Paper</span>
+          </button>
+          <button class="choice-btn" data-choice="scissors" type="button">
+            <span class="choice-sketch" aria-hidden="true"></span>
+            <span>Scissors</span>
+          </button>
+        </div>
+
+        <div id="choice-reveal" class="choice-reveal-area hidden">
+          <div class="reveal-player">
+            <img id="reveal-p1-avatar" class="reveal-avatar" src="" alt="">
+            <div class="reveal-label" id="reveal-p1-name"></div>
+            <div class="reveal-slot" id="reveal-p1-slot">
+              <div class="sketch-flipbook-host" id="reveal-p1-sketch"></div>
+              <span class="choice-label" id="reveal-p1-label"></span>
+            </div>
+          </div>
+          <div class="reveal-vs clash-burst">VS</div>
+          <div class="reveal-player">
+            <img id="reveal-p2-avatar" class="reveal-avatar" src="" alt="">
+            <div class="reveal-label" id="reveal-p2-name"></div>
+            <div class="reveal-slot" id="reveal-p2-slot">
+              <div class="sketch-flipbook-host" id="reveal-p2-sketch"></div>
+              <span class="choice-label" id="reveal-p2-label"></span>
+            </div>
+          </div>
+        </div>
+
+        <div id="round-result" class="hidden"></div>
+        <div id="match-result" class="hidden"></div>
+
+        <div id="match-room-chat" class="match-room-chat hidden">
+          <h3>Room Chat</h3>
+          <div id="match-room-chat-log" class="chat-log chat-log-compact"></div>
+          <form id="match-room-chat-form" class="chat-form">
+            <input type="text" id="match-room-chat-input" maxlength="500" placeholder="Message room..." autocomplete="off">
+            <button type="submit" class="btn-secondary">Send</button>
+          </form>
+        </div>
+          </div>
+        </div>
+      </section>
+      </div>
+
+      <aside id="global-chat-aside" class="panel chat-aside">
+        <h2>Global Chat</h2>
+        <p class="info">Talk with everyone on the site.</p>
+        <div id="global-chat-log" class="chat-log"></div>
+        <form id="global-chat-form" class="chat-form">
+          <input type="text" id="global-chat-input" maxlength="500" placeholder="Message global..." autocomplete="off">
+          <button type="submit" class="btn-accent">Send</button>
+        </form>
+      </aside>
+    </div>
+  </main>
+
+  <div id="profile-modal" class="modal hidden">
+    <div class="modal-card panel">
+      <h2>Player Stats</h2>
+      <p class="info"><strong id="stats-username"></strong></p>
+      <div class="stats-grid">
+        <div class="stat-item"><span><span data-moola-icon></span> Betted</span><strong id="stat-betted">0</strong></div>
+        <div class="stat-item"><span><span data-moola-icon></span> Won</span><strong id="stat-won">0</strong></div>
+        <div class="stat-item"><span><span data-moola-icon></span> Lost</span><strong id="stat-lost">0</strong></div>
+        <div class="stat-item"><span>Net Profit/Loss</span><strong id="stat-net">0</strong></div>
+        <div class="stat-item"><span>Win Rate</span><strong id="stat-winrate">0%</strong></div>
+      </div>
+      <button id="close-profile-modal" class="btn-secondary" type="button">Close</button>
+    </div>
+  </div>
+
+  <div id="match-overlay" class="match-overlay hidden"></div>
+
+  <footer>
+    <p>RPS Battle &mdash; Not affiliated with Torn. Play responsibly.</p>
+  </footer>
+
+  <script src="/js/match-fx.js"></script>
+  <script src="/js/notebook-bg.js"></script>
+  <script src="/js/moola-icon.js"></script>
+  <script src="/js/rps-sketch.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

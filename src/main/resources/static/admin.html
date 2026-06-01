@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RPS Battle - Admin</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <canvas id="notebook-doodle-canvas" class="notebook-doodle-canvas" aria-hidden="true"></canvas>
+  <header>
+    <h1>RPS<span class="accent">BATTLE</span> <small>Admin</small></h1>
+  </header>
+
+  <main>
+    <section id="admin-auth" class="panel">
+      <h2>Admin Login</h2>
+      <form id="admin-auth-form">
+        <input type="password" id="admin-key-input" placeholder="Admin secret key..." required>
+        <button type="submit">Login</button>
+      </form>
+    </section>
+
+    <section id="admin-dashboard" class="panel hidden">
+      <h2>Pending Withdrawals</h2>
+      <div id="withdrawals-list"></div>
+
+      <h2 style="margin-top: 2rem; display: block;">All Users</h2>
+      <div style="display: flex; gap: 0.8rem; margin-top: 1rem; max-width: 500px;">
+        <input type="text" id="user-search" placeholder="Search by username..." style="flex: 1;">
+        <button type="button" id="refresh-users-btn" class="btn-secondary">Refresh</button>
+      </div>
+      <div id="users-list" style="margin-top: 1rem;"></div>
+
+      <h2 style="margin-top: 2rem; display: block;">Give Moola to Player</h2>
+      <form id="credit-user-form" style="display: flex; flex-direction: column; gap: 0.8rem; margin-top: 1rem; max-width: 400px;">
+        <div>
+          <label style="display: block; font-size: 0.9rem; margin-bottom: 0.3rem; font-family: 'Gochi Hand', cursive;">Target Username:</label>
+          <input type="text" id="target-username" placeholder="Enter player username..." required>
+        </div>
+        <div>
+          <label style="display: block; font-size: 0.9rem; margin-bottom: 0.3rem; font-family: 'Gochi Hand', cursive;">Amount (Moola):</label>
+          <input type="number" id="credit-amount" min="1" placeholder="Enter Moola amount..." required>
+        </div>
+        <button type="submit" class="btn-accent" style="align-self: start;">Credit Player</button>
+        <div id="credit-message" class="hidden"></div>
+      </form>
+    </section>
+  </main>
+
+  <script src="/js/match-fx.js"></script>
+  <script src="/js/notebook-bg.js"></script>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

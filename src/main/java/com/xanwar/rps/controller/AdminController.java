@@ -1,0 +1,107 @@
+package com.xanwar.rps.controller;
+
+import com.xanwar.rps.config.AdminProperties;
+import com.xanwar.rps.dto.AdminKeyRequest;
+import com.xanwar.rps.dto.WithdrawalDto;
+import com.xanwar.rps.repository.UserRepository;
+import com.xanwar.rps.service.WalletService;
+import com.xanwar.rps.service.WithdrawalService;
+import jakarta.validation.Valid;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/admin")
+public class AdminController {
+
+    private final WithdrawalService withdrawalService;
+    private final WalletService walletService;
+    private final AdminProperties adminProperties;
+    private final UserRepository userRepository;
+
+    public AdminController(
+            WithdrawalService withdrawalService,
+            WalletService walletService,
+            AdminProperties adminProperties,
+            UserRepository userRepository
+    ) {
+        this.withdrawalService = withdrawalService;
+        this.walletService = walletService;
+        this.adminProperties = adminProperties;
+        this.userRepository = userRepository;
+    }
+
+    @GetMapping("/withdrawals")
+    public ResponseEntity<Map<String, Object>> pending(@RequestParam String adminKey) {
+        List<WithdrawalDto> withdrawals = withdrawalService.listPending(adminKey);
+        Map<String, Object> body = new HashMap<>();
+        body.put("withdrawals", withdrawals);
+        return ResponseEntity.ok(body);
+    }
+
+    @PostMapping("/withdrawals/{id}/complete")
+    public ResponseEntity<Map<String, Object>> complete(
+            @PathVariable Long id,
+            @Valid @RequestBody AdminKeyRequest request
+    ) {
+        return ResponseEntity.ok(withdrawalService.complete(id, request.adminKey()));
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<Map<String, Object>> listUsers(@RequestParam String adminKey) {
+        if (!adminProperties.matchesKey(adminKey)) {
+            return ResponseEntity.status(401).body(Map.of("success", false, "error", "Unauthorized."));
+        }
+
+        List<Map<String, Object>> users = userRepository.findAll().stream()
+                .map(u -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id", u.getId());
+                    map.put("username", u.getUsername());
+                    map.put("tornId", u.getTornId());
+                    map.put("siteBalance", u.getSiteBalance());
+                    map.put("totalMatchesPlayed", u.getTotalMatchesPlayed());
+                    map.put("totalMatchesWon", u.getTotalMatchesWon());
+                    return map;
+                })
+                .toList();
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("success", true);
+        body.put("users", users);
+        return ResponseEntity.ok(body);
+    }
+
+    @PostMapping("/credit")
+    public ResponseEntity<Map<String, Object>> credit(
+            @Valid @RequestBody CreditRequest request
+    ) {
+        if (!adminProperties.matchesKey(request.adminKey())) {
+            return ResponseEntity.status(401).body(Map.of("success", false, "error", "Unauthorized."));
+        }
+
+        if (request.amount() <= 0) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "Amount must be positive."));
+        }
+
+        boolean success = walletService.creditBalanceByUsername(request.username(), request.amount());
+        if (!success) {
+            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "User '" + request.username() + "' not found."));
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "success", true,
+                "message", "Successfully credited " + request.amount() + " Moola to user '" + request.username() + "'."
+        ));
+    }
+
+    record CreditRequest(
+            String username,
+            long amount,
+            String adminKey
+    ) {}
+}
