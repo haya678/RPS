@@ -21,6 +21,7 @@
         <button id="tab-login" class="tab-btn active" type="button">Log In</button>
         <button id="tab-signup" class="tab-btn" type="button">Sign Up</button>
       </div>
+      <p id="signup-note" class="info hidden">Only public Torn API keys are required. We only read Torn events to verify deposits and withdrawals.</p>
       <form id="auth-form">
         <input type="password" id="api-key-input" placeholder="Paste Torn API key" required>
         <input type="password" id="pin-input" placeholder="4-digit PIN" maxlength="4" inputmode="numeric" pattern="\d{4}" required>
@@ -72,7 +73,7 @@
         <div id="lobby-actions" class="lobby-actions">
           <div class="create-room">
             <label>Bet Amount (<span data-moola-icon></span>):</label>
-            <input type="number" id="bet-input" min="4" step="4" value="100">
+            <input type="number" id="bet-input" min="1" step="1" value="100">
             <label>Rounds (Best of):</label>
             <select id="rounds-select">
               <option value="1">Best of 1 (First to 1)</option>
@@ -124,7 +125,7 @@
 
         <div id="leaderboard-section" class="leaderboard">
           <div class="leaderboard-header">
-            <h3>🏆 Top Winners</h3>
+            <h3>Top Winners</h3>
             <button type="button" id="refresh-leaderboard-btn" class="btn-secondary btn-small">Refresh</button>
           </div>
           <ol id="leaderboard-list" class="leaderboard-list">

@@ -1472,7 +1472,7 @@ button:not(:disabled):hover {
 .match-overlay {
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: 99999;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -1782,6 +1782,11 @@ body.match-only .game-main {
   margin: 0 auto 0.5rem;
   animation: iconWiggle 0.6s ease-in-out 0.15s both;
 }
+.result-sketch-icon path {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 2 4;
+}
 
 .sketch-result-card .result-title {
   font-family: 'Caveat', cursive;
@@ -1894,6 +1899,9 @@ body.match-only .game-main {
   border-radius: 120px 15px 100px 15px/15px 100px 15px 120px;
   transition: all 0.15s ease;
 }
+.score-board .score-player {
+  display: none;
+}
 .leaderboard-item:hover {
   transform: rotate(-0.5deg) scale(1.01);
   background: rgba(255, 235, 59, 0.08);
@@ -1911,6 +1919,19 @@ body.match-only .game-main {
   color: var(--paper);
   background: var(--ink);
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.2);
+  border: 1px dashed rgba(255,255,255,0.45);
+  letter-spacing: -0.03em;
+  text-shadow: 0 1px 0 rgba(0,0,0,0.08);
+  transform: rotate(-0.5deg);
+  position: relative;
+}
+.rank-icon::before {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border-top: 1px dashed rgba(255,255,255,0.5);
+  transform: rotate(-6deg);
+  opacity: 0.7;
 }
 .rank-default {
   background: linear-gradient(135deg, #ffffff 0%, #f1f1f1 100%);

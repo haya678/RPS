@@ -1029,6 +1029,7 @@ function setAuthMode(mode) {
   const isSignup = mode === 'signup';
   tabSignup.classList.toggle('active', isSignup);
   tabLogin.classList.toggle('active', !isSignup);
+  signupNote?.classList.toggle('hidden', !isSignup);
   $('#auth-btn').textContent = isSignup ? 'Sign Up' : 'Log In';
 }
 
@@ -1115,8 +1116,8 @@ withdrawBtn.addEventListener('click', async () => {
 // ── ROOMS ──────────────────────────────────────────────
 createRoomBtn.addEventListener('click', () => {
   const bet = parseInt(betInput.value, 10);
-  if (!bet || bet < 4 || bet % 4 !== 0) {
-    showMsg(lobbyMessage, 'Bet must be a multiple of 4.', true);
+  if (!bet || bet <= 0) {
+    showMsg(lobbyMessage, 'Bet must be a positive whole number.', true);
     return;
   }
   prepareMatchTab();
@@ -1139,8 +1140,8 @@ createRoomBtn.addEventListener('click', () => {
 
 playBotBtn?.addEventListener('click', () => {
   const bet = parseInt(betInput.value, 10);
-  if (!bet || bet < 4 || bet % 4 !== 0) {
-    showMsg(lobbyMessage, 'Bet must be a multiple of 4.', true);
+  if (!bet || bet <= 0) {
+    showMsg(lobbyMessage, 'Bet must be a positive whole number.', true);
     return;
   }
   prepareMatchTab();
