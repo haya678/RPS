@@ -16,8 +16,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -58,82 +60,38 @@ public class DepositService {
                 - (depositProperties.getMaxAgeHours() * 3600L);
         JsonNode data;
         try {
-            data = tornApiClient.fetchHouseEvents(cutoffEpoch);
+            data = tornApiClient.fetchHouseActivity(cutoffEpoch);
         } catch (Exception e) {
-            log.warn("House events API failed: {}", e.getMessage());
+            log.warn("House activity API failed: {}", e.getMessage());
             result.put("success", false);
-            result.put("error", "Could not read house account events. Check TORN_API_MY_KEY has Events access.");
-            return result;
-        }
-
-        JsonNode events = resolveEventsNode(data);
-        if (events == null || events.isMissingNode() || events.isNull() || !events.fields().hasNext()) {
-            result.put("success", true);
-            result.put("message",
-                    "No events returned from Torn. Confirm the house API key includes the Events selection, "
-                            + "then send Xanax with message \"" + depositProperties.getRequiredMessage() + "\".");
-            result.put("site_balance", user.getSiteBalance());
-            result.put("new_moola", 0);
+            result.put("error", "Could not read Hannath's Torn events. Check TORN_API_MY_KEY has Events + Log access.");
             return result;
         }
 
         String requiredMessage = depositProperties.getRequiredMessage();
         int moolaPerXanax = gameProperties.getMoolaPerXanax();
+        List<String> debugHints = new ArrayList<>();
+
         long totalMoola = 0;
-        int processedCount = 0;
+        totalMoola += processActivityNode(
+                data.path("events"), user, userTornId, cutoffEpoch, requiredMessage, moolaPerXanax, debugHints);
+        totalMoola += processActivityNode(
+                data.path("log"), user, userTornId, cutoffEpoch, requiredMessage, moolaPerXanax, debugHints);
+        totalMoola += processActivityNode(
+                data.path("data").path("events"), user, userTornId, cutoffEpoch, requiredMessage, moolaPerXanax, debugHints);
+        totalMoola += processActivityNode(
+                data.path("data").path("log"), user, userTornId, cutoffEpoch, requiredMessage, moolaPerXanax, debugHints);
 
-        Iterator<Map.Entry<String, JsonNode>> fields = events.fields();
-        while (fields.hasNext()) {
-            Map.Entry<String, JsonNode> entry = fields.next();
-            String eventId = entry.getKey();
-            JsonNode event = entry.getValue();
-
-            if (eventId == null || eventId.isBlank()) {
-                if (event.has("id")) {
-                    eventId = String.valueOf(event.get("id").asInt());
-                } else {
-                    continue;
-                }
-            }
-
-            long eventTimestamp = event.path("timestamp").asLong(0);
-            if (eventTimestamp > 0 && eventTimestamp < cutoffEpoch) {
-                continue;
-            }
-
-            String eventText = event.path("event").asText("");
-            Optional<ParsedDeposit> parsed = TornXanaxDepositParser.parse(eventText, requiredMessage);
-            if (parsed.isEmpty()) {
-                continue;
-            }
-
-            ParsedDeposit deposit = parsed.get();
-            if (!TornXanaxDepositParser.tornIdsMatch(deposit.senderTornId(), userTornId)) {
-                continue;
-            }
-            if (depositRepository.existsByEventId(eventId)) {
-                continue;
-            }
-
-            long moola = (long) deposit.xanaxAmount() * moolaPerXanax;
-            Instant tornEventTime = eventTimestamp > 0
-                    ? Instant.ofEpochSecond(eventTimestamp)
-                    : Instant.now();
-            Deposit record = new Deposit(eventId, userTornId, "player", deposit.xanaxAmount(), moola, tornEventTime);
-            record.setUser(user);
-            depositRepository.save(record);
-
-            totalMoola += moola;
-            processedCount++;
-            log.info("Credited deposit event {} — {} xanax from tornId {}", eventId, deposit.xanaxAmount(), userTornId);
-        }
-
-        if (processedCount == 0) {
+        if (totalMoola == 0) {
             result.put("success", true);
-            result.put("message",
-                    "No new deposits found. Send Xanax to the house account with message \""
-                            + requiredMessage
-                            + "\" (exact spelling; rps and RPS both work). Wait a minute after sending, then try again.");
+            StringBuilder msg = new StringBuilder();
+            msg.append("No new deposits found for Torn ID ").append(userTornId).append(". ");
+            msg.append("Send Xanax to Hannath [3961385] with message \"").append(requiredMessage);
+            msg.append("\" from the same account you logged in with, wait 1–2 minutes, then try again.");
+            if (!debugHints.isEmpty()) {
+                msg.append(" Recent Xanax activity on house account: ").append(String.join(" | ", debugHints.subList(0, Math.min(2, debugHints.size()))));
+            }
+            result.put("message", msg.toString());
             result.put("site_balance", user.getSiteBalance());
             result.put("new_moola", 0);
             return result;
@@ -142,22 +100,88 @@ public class DepositService {
         user.setSiteBalance(user.getSiteBalance() + totalMoola);
         userRepository.save(user);
         result.put("success", true);
-        result.put("message", "Verified " + processedCount + " deposit(s): "
-                + (totalMoola / moolaPerXanax) + " Xanax (" + totalMoola + " Moola)");
+        result.put("message", "Verified deposit: "
+                + (totalMoola / moolaPerXanax) + " Xanax → " + totalMoola + " Moola");
         result.put("site_balance", user.getSiteBalance());
         result.put("new_moola", totalMoola);
         return result;
     }
 
-    /** Torn returns {@code events} at root; some clients nest under {@code data}. */
-    private JsonNode resolveEventsNode(JsonNode root) {
-        if (root == null) {
-            return null;
+    private long processActivityNode(
+            JsonNode node,
+            User user,
+            String userTornId,
+            long cutoffEpoch,
+            String requiredMessage,
+            int moolaPerXanax,
+            List<String> debugHints
+    ) {
+        if (node == null || node.isMissingNode() || node.isNull() || !node.isObject()) {
+            return 0L;
         }
-        JsonNode events = root.path("events");
-        if (!events.isMissingNode() && events.isObject()) {
-            return events;
+
+        long totalMoola = 0L;
+
+        Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> entry = fields.next();
+            String eventId = entry.getKey();
+            JsonNode item = entry.getValue();
+
+            if (eventId == null || eventId.isBlank()) {
+                if (item.has("id")) {
+                    eventId = String.valueOf(item.get("id").asInt());
+                } else {
+                    continue;
+                }
+            }
+
+            long eventTimestamp = item.path("timestamp").asLong(0);
+            if (eventTimestamp == 0) {
+                eventTimestamp = item.path("time").asLong(0);
+            }
+            if (eventTimestamp > 0 && eventTimestamp < cutoffEpoch) {
+                continue;
+            }
+
+            String eventText = item.path("event").asText("");
+            if (eventText.isBlank()) {
+                eventText = item.path("data").asText("");
+            }
+            if (eventText.isBlank()) {
+                eventText = item.path("title").asText("");
+            }
+
+            debugHints.addAll(TornXanaxDepositParser.findXanaxHints(eventText));
+
+            Optional<ParsedDeposit> parsed = TornXanaxDepositParser.parse(eventText, requiredMessage);
+            if (parsed.isEmpty()) {
+                continue;
+            }
+
+            ParsedDeposit deposit = parsed.get();
+            if (!TornXanaxDepositParser.tornIdsMatch(deposit.senderTornId(), userTornId)) {
+                log.debug("Skipping deposit from tornId {} — logged-in user is {}", deposit.senderTornId(), userTornId);
+                continue;
+            }
+
+            String uniqueId = "ev-" + eventId;
+            if (depositRepository.existsByEventId(uniqueId)) {
+                continue;
+            }
+
+            long moola = (long) deposit.xanaxAmount() * moolaPerXanax;
+            Instant tornEventTime = eventTimestamp > 0
+                    ? Instant.ofEpochSecond(eventTimestamp)
+                    : Instant.now();
+            Deposit record = new Deposit(uniqueId, userTornId, "player", deposit.xanaxAmount(), moola, tornEventTime);
+            record.setUser(user);
+            depositRepository.save(record);
+
+            totalMoola += moola;
+            log.info("Matched deposit {} — {} xanax from tornId {} for user {}", uniqueId, deposit.xanaxAmount(), deposit.senderTornId(), userTornId);
         }
-        return root.path("data").path("events");
+
+        return totalMoola;
     }
 }

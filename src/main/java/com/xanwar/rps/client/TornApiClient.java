@@ -36,22 +36,11 @@ public class TornApiClient {
         return fetchUserBasic(tornApi.getMyKey());
     }
 
-    /** Fetches the house account event log (deposit verification). */
-    public JsonNode fetchHouseEvents() {
-        return fetchHouseEvents(null);
-    }
-
-    /** @param fromEpochSeconds optional; only events at or after this Unix time (Torn {@code from} filter). */
-    public JsonNode fetchHouseEvents(Long fromEpochSeconds) {
-        String path = tornApi.getEventsPath();
-        if (!path.startsWith("/")) {
-            path = "/" + path;
-        }
-        String separator = path.contains("?") ? "&" : "?";
+    /** Fetches house events + log (deposit verification). */
+    public JsonNode fetchHouseActivity(Long fromEpochSeconds) {
         StringBuilder url = new StringBuilder(tornApi.getBaseUrl())
-                .append(path)
-                .append(separator)
-                .append("key=")
+                .append("/user/?selections=events,log")
+                .append("&key=")
                 .append(tornApi.getMyKey());
         if (fromEpochSeconds != null && fromEpochSeconds > 0) {
             url.append("&from=").append(fromEpochSeconds);

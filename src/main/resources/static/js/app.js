@@ -124,6 +124,17 @@ function setLoggedIn(user) {
   loadDepositInstructions();
   loadLeaderboard();
   syncNotebookDoodles();
+  mountGameUiDecorations();
+}
+
+function mountGameUiDecorations() {
+  if (typeof MoolaIcon !== 'undefined') {
+    MoolaIcon.mountIcons();
+  }
+  if (typeof RpsSketch !== 'undefined') {
+    RpsSketch.mountChoiceButtons();
+    RpsSketch.mountSnowflakes();
+  }
 }
 
 function syncNotebookDoodles() {
@@ -384,6 +395,7 @@ function handleWsMessage(data) {
       matchPlayers.p1 = { id: data.player1Id, name: data.player1, avatar: '' };
       matchPlayers.p2 = { id: data.player2Id, name: data.player2, avatar: '' };
       gameSectionPanel.classList.remove('hidden');
+      mountGameUiDecorations();
       matchRoomChat.classList.remove('hidden');
       matchOverlay.classList.add('hidden');
       matchOverlay.innerHTML = '';
@@ -392,9 +404,9 @@ function handleWsMessage(data) {
       syncNotebookDoodles();
       const p1Btn = $('#p1-score-name');
       const p2Btn = $('#p2-score-name');
-      p1Btn.textContent = data.player1;
+      setPlayerLabel(p1Btn, data.player1, data.player1Id);
       p1Btn.dataset.tornId = data.player1Id || '';
-      p2Btn.textContent = data.player2;
+      setPlayerLabel(p2Btn, data.player2, data.player2Id);
       p2Btn.dataset.tornId = data.player2Id || '';
       const p1AvBtn = $('#p1-avatar-btn');
       const p2AvBtn = $('#p2-avatar-btn');
@@ -845,17 +857,29 @@ document.addEventListener('click', (e) => {
   showPlayerProfile(tornId);
 });
 
+function formatPlayerName(name, tornId) {
+  if (tornId === 'BOT_BAINING' || name === 'BaiNing') {
+    return 'BaiNing';
+  }
+  return name;
+}
+
+function setPlayerLabel(el, name, tornId) {
+  if (!el) return;
+  el.textContent = formatPlayerName(name, tornId);
+}
+
 function syncDuelBanner(p1Name, p2Name, p1Id, p2Id) {
   const duelP1Name = $('#duel-p1-name');
   const duelP2Name = $('#duel-p2-name');
   const duelP1Btn = $('#duel-p1-btn');
   const duelP2Btn = $('#duel-p2-btn');
   if (duelP1Name) {
-    duelP1Name.textContent = p1Name || '';
+    setPlayerLabel(duelP1Name, p1Name, p1Id);
     duelP1Name.dataset.tornId = p1Id || '';
   }
   if (duelP2Name) {
-    duelP2Name.textContent = p2Name || '';
+    setPlayerLabel(duelP2Name, p2Name, p2Id);
     duelP2Name.dataset.tornId = p2Id || '';
   }
   if (duelP1Btn) duelP1Btn.dataset.tornId = p1Id || '';
@@ -1219,10 +1243,5 @@ async function refreshBalance() {
       localStorage.removeItem('rpsPin');
     }
   }
-  if (typeof MoolaIcon !== 'undefined') {
-    MoolaIcon.mountIcons();
-  }
-  if (typeof RpsSketch !== 'undefined') {
-    RpsSketch.mountChoiceButtons();
-  }
+  mountGameUiDecorations();
 })();

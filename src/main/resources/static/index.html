@@ -52,12 +52,12 @@
         <div class="wallet-actions">
           <div class="wallet-col">
             <p class="info" id="deposit-instructions">Loading deposit instructions...</p>
-            <p class="info">Rate: <strong>1 Xanax = 4 <span data-moola-icon></span></strong></p>
+            <p class="info wallet-rate-line">Rate: <strong>1 Xanax = 4 <span data-moola-icon class="wallet-moola-inline"></span></strong></p>
             <button id="verify-deposit-btn" class="btn-accent">Verify Deposit</button>
             <div id="deposit-message" class="hidden"></div>
           </div>
           <div class="wallet-col">
-            <p class="info">Withdraw <span data-moola-icon></span> back to Xanax (must be multiple of 4).</p>
+            <p class="info wallet-withdraw-line">Withdraw <span data-moola-icon class="wallet-moola-inline"></span> back to Xanax (must be multiple of 4).</p>
             <div class="withdraw-row">
               <input type="number" id="withdraw-input" min="4" step="4" placeholder="Amount">
               <button id="withdraw-btn" class="btn-secondary">Withdraw</button>
@@ -86,7 +86,7 @@
             </label>
             <div style="display: flex; gap: 0.5rem; width: 100%;">
               <button id="create-room-btn" class="btn-accent" style="flex: 1;">Create Room</button>
-              <button id="play-bot-btn" class="btn-secondary" style="flex: 1;" type="button">Play BaiNing ❄️</button>
+              <button id="play-bot-btn" class="btn-secondary play-bot-btn" style="flex: 1;" type="button">Play BaiNing <span data-baining-snowflake class="baining-snowflake-slot" aria-hidden="true"></span></button>
             </div>
           </div>
           <div class="join-room">
