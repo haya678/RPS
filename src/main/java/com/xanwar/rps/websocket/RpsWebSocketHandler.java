@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xanwar.rps.service.ChatService;
 import com.xanwar.rps.service.GameRoomService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import com.xanwar.rps.util.WebSocketMessages;
 import org.springframework.web.socket.CloseStatus;
@@ -13,6 +15,8 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 @Component
 public class RpsWebSocketHandler extends TextWebSocketHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(RpsWebSocketHandler.class);
 
     private final GameRoomService gameRoomService;
     private final ChatService chatService;
@@ -67,7 +71,8 @@ public class RpsWebSocketHandler extends TextWebSocketHandler {
         } catch (IllegalArgumentException e) {
             sendError(session, e.getMessage());
         } catch (Exception e) {
-            sendError(session, "Server error: " + e.getMessage());
+            log.error("Unhandled WebSocket error for session {}", session.getId(), e);
+            sendError(session, "An unexpected server error occurred.");
         }
     }
 
