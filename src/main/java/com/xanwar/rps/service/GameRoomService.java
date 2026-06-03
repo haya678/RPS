@@ -62,6 +62,12 @@ public class GameRoomService {
             return;
         }
 
+        int rounds = json.path("rounds").asInt(3);
+        if (rounds < 1 || rounds > 99 || rounds % 2 == 0) {
+            sendError(session, "Rounds must be an odd number (e.g. 1, 3, 5, 7).");
+            return;
+        }
+
         if (!walletService.deductBalance(tornId, betAmount)) {
             sendError(session, "Insufficient balance.");
             return;
@@ -71,11 +77,6 @@ public class GameRoomService {
         boolean isPublic = json.path("isPublic").asBoolean(false);
         boolean playWithBot = json.path("playWithBot").asBoolean(false);
         String roomId = UUID.randomUUID().toString().substring(0, 8);
-        int rounds = json.path("rounds").asInt(3);
-        if (rounds < 1 || rounds > 99 || rounds % 2 == 0) {
-            sendError(session, "Rounds must be an odd number (e.g. 1, 3, 5, 7).");
-            return;
-        }
         int winsRequired = (rounds + 1) / 2;
         RoomVisibility visibility = isPublic ? RoomVisibility.PUBLIC : RoomVisibility.PRIVATE;
         if (playWithBot) {
@@ -427,7 +428,9 @@ public class GameRoomService {
         }
 
         PotSettlement settlement = PotSettlement.fromPot(room.getPot(), gameProperties.getHouseRakePercent());
-        walletService.creditBalance(winnerId, settlement.winnerPayout());
+        if (!"BOT_BAINING".equals(winnerId)) {
+            walletService.creditBalance(winnerId, settlement.winnerPayout());
+        }
         String loserId = winnerId.equals(room.getPlayer1Id()) ? room.getPlayer2Id() : room.getPlayer1Id();
         String loserName = winnerId.equals(room.getPlayer1Id()) ? room.getPlayer2Name() : room.getPlayer1Name();
         userService.recordMatchOutcome(winnerId, loserId, settlement.winnerPayout(), room.getBetAmount());
