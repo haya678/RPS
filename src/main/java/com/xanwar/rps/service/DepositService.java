@@ -305,7 +305,9 @@ public class DepositService {
                 data.path("userId").asText(""),
                 data.path("sender").path("id").asText(""),
                 data.path("from").path("id").asText(""),
-                data.path("user").path("id").asText("")
+                data.path("user").path("id").asText(""),
+                scalarNumericId(data.path("sender")),
+                scalarNumericId(data.path("from"))
         );
         if (senderId.isBlank()) {
             return Optional.empty();
@@ -319,7 +321,10 @@ public class DepositService {
                 data.path("object").asText("")
         );
         if (!itemName.toLowerCase().contains("xanax")) {
-            return Optional.empty();
+            itemName = extractItemNameFromArray(data);
+            if (!itemName.toLowerCase().contains("xanax")) {
+                return Optional.empty();
+            }
         }
 
         String message = firstText(
@@ -339,10 +344,60 @@ public class DepositService {
                 data.path("count")
         );
         if (amount <= 0) {
+            amount = extractAmountFromItemsArray(data);
+        }
+        if (amount <= 0) {
             return Optional.empty();
         }
 
         return Optional.of(new ParsedDeposit(amount, senderId, message));
+    }
+
+    /** Extracts item name from Torn's array format: "items": [{"name": "Xanax", ...}] */
+    private String extractItemNameFromArray(JsonNode data) {
+        JsonNode items = data.path("items");
+        if (!items.isArray()) {
+            return "";
+        }
+        for (JsonNode entry : items) {
+            String name = firstText(
+                    entry.path("name").asText(""),
+                    entry.path("item_name").asText(""),
+                    entry.path("itemName").asText("")
+            );
+            if (!name.isBlank()) {
+                return name;
+            }
+        }
+        return "";
+    }
+
+    /** Extracts quantity from Torn's items array: "items": [{"qty": 1, ...}] */
+    private int extractAmountFromItemsArray(JsonNode data) {
+        JsonNode items = data.path("items");
+        if (!items.isArray()) {
+            return 0;
+        }
+        int total = 0;
+        for (JsonNode entry : items) {
+            String name = firstText(
+                    entry.path("name").asText(""),
+                    entry.path("item_name").asText(""),
+                    entry.path("itemName").asText("")
+            );
+            if (name.toLowerCase().contains("xanax")) {
+                int qty = firstPositiveInt(
+                        entry.path("quantity"),
+                        entry.path("qty"),
+                        entry.path("amount"),
+                        entry.path("count")
+                );
+                if (qty > 0) {
+                    total += qty;
+                }
+            }
+        }
+        return total;
     }
 
     private String extractTransferMessage(JsonNode item, List<String> eventTexts) {
@@ -385,6 +440,8 @@ public class DepositService {
                 item.path("sender").path("id").asText(""),
                 item.path("from").path("id").asText(""),
                 item.path("user").path("id").asText(""),
+                scalarNumericId(item.path("sender")),
+                scalarNumericId(item.path("from")),
                 item.path("data").path("sender_id").asText(""),
                 item.path("data").path("senderId").asText(""),
                 item.path("data").path("from_id").asText(""),
@@ -393,8 +450,31 @@ public class DepositService {
                 item.path("data").path("userId").asText(""),
                 item.path("data").path("sender").path("id").asText(""),
                 item.path("data").path("from").path("id").asText(""),
-                item.path("data").path("user").path("id").asText("")
+                item.path("data").path("user").path("id").asText(""),
+                scalarNumericId(item.path("data").path("sender")),
+                scalarNumericId(item.path("data").path("from"))
         );
+    }
+
+    /** Extracts a numeric ID from a scalar node (int/long), ignoring objects and missing nodes. */
+    private String scalarNumericId(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull() || node.isObject() || node.isArray()) {
+            return "";
+        }
+        if (node.isNumber()) {
+            long val = node.asLong(0);
+            return val > 0 ? String.valueOf(val) : "";
+        }
+        String text = node.asText("").trim();
+        if (!text.isEmpty()) {
+            try {
+                long val = Long.parseLong(text);
+                return val > 0 ? String.valueOf(val) : "";
+            } catch (NumberFormatException ignored) {
+                return "";
+            }
+        }
+        return "";
     }
 
     private String firstText(String... values) {
