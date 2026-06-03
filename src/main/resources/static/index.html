@@ -40,6 +40,21 @@
           <div>
             <span id="display-username"></span>
           </div>
+          <div id="profile-modal" class="profile-dropdown hidden">
+            <div class="profile-dropdown-card">
+              <div class="profile-dropdown-header">
+                <strong id="stats-username"></strong>
+              </div>
+              <div class="stats-grid">
+                <div class="stat-item"><span><span data-moola-icon></span> Betted</span><strong id="stat-betted">0</strong></div>
+                <div class="stat-item"><span><span data-moola-icon></span> Won</span><strong id="stat-won">0</strong></div>
+                <div class="stat-item"><span><span data-moola-icon></span> Lost</span><strong id="stat-lost">0</strong></div>
+                <div class="stat-item"><span>Net P/L</span><strong id="stat-net">0</strong></div>
+                <div class="stat-item"><span>Win Rate</span><strong id="stat-winrate">0%</strong></div>
+              </div>
+              <button id="close-profile-modal" class="btn-secondary btn-small" type="button">Close</button>
+            </div>
+          </div>
         </div>
         <div class="top-actions">
           <a href="/admin.html" class="btn-link">Admin</a>
@@ -101,7 +116,10 @@
         <div id="lobby-message" class="hidden"></div>
 
         <section id="waiting-room-panel" class="panel waiting-room-panel hidden">
-          <h2>Waiting for opponent</h2>
+          <div class="waiting-room-spinner-wrap">
+            <div class="waiting-room-spinner" aria-hidden="true"></div>
+          </div>
+          <h2>Waiting for opponent...</h2>
           <p class="info waiting-room-hint">Share this code so someone can join. The match starts when they join.</p>
           <div class="waiting-room-code-wrap">
             <span id="waiting-room-code" class="code waiting-room-code"></span>
@@ -254,10 +272,11 @@
   </main>
 
   <div id="auto-login-loading" class="auto-login-loading hidden" role="status" aria-live="polite">
-    <div class="auto-login-card panel">
-      <div class="auto-login-spinner" aria-hidden="true"></div>
-      <h2>Logging In</h2>
-      <p>Checking your saved Torn login...</p>
+    <div class="auto-login-card">
+      <div class="auto-login-pulse" aria-hidden="true">
+        <span class="pulse-fist">&#9994;</span>
+      </div>
+      <p class="auto-login-text">Connecting...</p>
     </div>
   </div>
 
@@ -305,21 +324,6 @@
         </div>
       </div>
       <button id="close-deposit-verified-modal" class="btn-accent" type="button">Got it</button>
-    </div>
-  </div>
-
-  <div id="profile-modal" class="modal hidden">
-    <div class="modal-card panel">
-      <h2>Player Stats</h2>
-      <p class="info"><strong id="stats-username"></strong></p>
-      <div class="stats-grid">
-        <div class="stat-item"><span><span data-moola-icon></span> Betted</span><strong id="stat-betted">0</strong></div>
-        <div class="stat-item"><span><span data-moola-icon></span> Won</span><strong id="stat-won">0</strong></div>
-        <div class="stat-item"><span><span data-moola-icon></span> Lost</span><strong id="stat-lost">0</strong></div>
-        <div class="stat-item"><span>Net Profit/Loss</span><strong id="stat-net">0</strong></div>
-        <div class="stat-item"><span>Win Rate</span><strong id="stat-winrate">0%</strong></div>
-      </div>
-      <button id="close-profile-modal" class="btn-secondary" type="button">Close</button>
     </div>
   </div>
 
