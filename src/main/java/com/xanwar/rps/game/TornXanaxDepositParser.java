@@ -12,15 +12,21 @@ public final class TornXanaxDepositParser {
 
     private static final List<Pattern> PATTERNS = List.of(
             Pattern.compile(
-                    "You received (\\d+)x Xanax from .*?(?:\\[|\\()(\\d+)(?:\\]|\\))\\s*with the message:\\s*"
+                    "You received (\\d+)\\s*x?\\s*Xanax from .*?(?:\\[|\\()(\\d+)(?:\\]|\\))\\s*(?:with (?:the )?message|message):\\s*"
                             + "(.+?)\\.?\\s*$",
                     Pattern.CASE_INSENSITIVE),
             Pattern.compile(
-                    "You were sent (\\d+)x Xanax by .*?(?:\\[|\\()(\\d+)(?:\\]|\\))\\s*with the message:\\s*"
+                    "You were sent (\\d+)\\s*x?\\s*Xanax by .*?(?:\\[|\\()(\\d+)(?:\\]|\\))\\s*(?:with (?:the )?message|message):\\s*"
                             + "(.+?)\\.?\\s*$",
                     Pattern.CASE_INSENSITIVE),
             Pattern.compile(
-                    ".*?\\[(\\d+)]\\s*sent you (\\d+)x Xanax with the message:\\s*(.+?)\\.?\\s*$",
+                    ".*?(?:\\[|\\()(\\d+)(?:\\]|\\))\\s*sent you (\\d+)\\s*x?\\s*Xanax\\s*(?:with (?:the )?message|message):\\s*(.+?)\\.?\\s*$",
+                    Pattern.CASE_INSENSITIVE),
+            Pattern.compile(
+                    ".*?sent you (\\d+)\\s*x?\\s*Xanax\\s*(?:with (?:the )?message|message):\\s*(.+?)\\.?\\s*$",
+                    Pattern.CASE_INSENSITIVE),
+            Pattern.compile(
+                    "You received (\\d+)\\s*x?\\s*Xanax from .*?\\s*(?:with (?:the )?message|message):\\s*(.+?)\\.?\\s*$",
                     Pattern.CASE_INSENSITIVE)
     );
 
@@ -31,6 +37,10 @@ public final class TornXanaxDepositParser {
     }
 
     public static Optional<ParsedDeposit> parse(String rawText, String requiredMessage) {
+        return parse(rawText, requiredMessage, null);
+    }
+
+    public static Optional<ParsedDeposit> parse(String rawText, String requiredMessage, String fallbackSenderTornId) {
         if (rawText == null || rawText.isBlank() || requiredMessage == null || requiredMessage.isBlank()) {
             return Optional.empty();
         }
@@ -43,10 +53,17 @@ public final class TornXanaxDepositParser {
             int amount;
             String senderId;
             String messageText;
-            if (pattern.pattern().startsWith(".*?\\[")) {
+            if (pattern.pattern().startsWith(".*?(?:\\[|\\(")) {
                 senderId = matcher.group(1);
                 amount = Integer.parseInt(matcher.group(2));
                 messageText = matcher.group(3);
+            } else if (matcher.groupCount() == 2) {
+                if (fallbackSenderTornId == null || fallbackSenderTornId.isBlank()) {
+                    continue;
+                }
+                amount = Integer.parseInt(matcher.group(1));
+                senderId = fallbackSenderTornId;
+                messageText = matcher.group(2);
             } else {
                 amount = Integer.parseInt(matcher.group(1));
                 senderId = matcher.group(2);
@@ -62,7 +79,17 @@ public final class TornXanaxDepositParser {
     }
 
     static String stripHtml(String raw) {
-        return raw.replaceAll("<[^>]+>", "").replace("&nbsp;", " ");
+        String withProfileIds = raw.replaceAll(
+                "(?i)<a\\b[^>]*(?:XID=|user=|profiles\\.php\\?XID=)(\\d+)[^>]*>(.*?)</a>",
+                "$2 [$1]"
+        );
+        return withProfileIds
+                .replaceAll("<[^>]+>", "")
+                .replace("&nbsp;", " ")
+                .replace("&quot;", "\"")
+                .replace("&#039;", "'")
+                .replace("&apos;", "'")
+                .replace("&amp;", "&");
     }
 
     static String normalizeMessage(String message) {

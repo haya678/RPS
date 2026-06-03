@@ -16,8 +16,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -160,32 +162,32 @@ public class DepositService {
                 continue;
             }
 
-            // Torn events use "event" field, log entries use "log" field
-            String eventText = item.path("event").asText("");
-            if (eventText.isBlank()) {
-                eventText = item.path("log").asText("");
+            String fallbackSenderId = extractSenderTornId(item);
+            List<String> eventTexts = extractActivityTexts(item);
+            Optional<ParsedDeposit> parsed = parseStructuredDeposit(item, requiredMessage, fallbackSenderId);
+
+            if (parsed.isEmpty()) {
+                for (String eventText : eventTexts) {
+                    // Only look at entries mentioning Xanax to avoid unnecessary parsing
+                    if (!eventText.toLowerCase().contains("xanax")) {
+                        continue;
+                    }
+
+                    log.debug("[{}] Event {}: {}", source, eventId,
+                            eventText.length() > 120 ? eventText.substring(0, 120) + "..." : eventText);
+
+                    parsed = TornXanaxDepositParser.parse(eventText, requiredMessage, fallbackSenderId);
+                    if (parsed.isPresent()) {
+                        break;
+                    }
+                }
             }
-            if (eventText.isBlank()) {
-                eventText = item.path("data").asText("");
-            }
-            if (eventText.isBlank()) {
-                eventText = item.path("title").asText("");
-            }
-            if (eventText.isBlank()) {
+
+            if (eventTexts.isEmpty() && parsed.isEmpty()) {
                 skippedNoText++;
                 continue;
             }
 
-            // Only look at entries mentioning Xanax to avoid unnecessary parsing
-            if (!eventText.toLowerCase().contains("xanax")) {
-                skippedNoMatch++;
-                continue;
-            }
-
-            log.debug("[{}] Event {}: {}", source, eventId,
-                    eventText.length() > 120 ? eventText.substring(0, 120) + "..." : eventText);
-
-            Optional<ParsedDeposit> parsed = TornXanaxDepositParser.parse(eventText, requiredMessage);
             if (parsed.isEmpty()) {
                 skippedNoMatch++;
                 continue;
@@ -199,8 +201,9 @@ public class DepositService {
                 continue;
             }
 
-            String uniqueId = "ev-" + eventId;
-            if (depositRepository.existsByEventId(uniqueId)) {
+            String uniqueId = source + "-" + eventId;
+            String legacyUniqueId = "ev-" + eventId;
+            if (depositRepository.existsByEventId(uniqueId) || depositRepository.existsByEventId(legacyUniqueId)) {
                 skippedDuplicate++;
                 continue;
             }
@@ -223,5 +226,147 @@ public class DepositService {
                 source, processedCount, totalMoola / moolaPerXanax,
                 skippedOld, skippedNoText, skippedNoMatch, skippedWrongUser, skippedDuplicate);
         return totalMoola;
+    }
+
+    private List<String> extractActivityTexts(JsonNode item) {
+        List<String> texts = new ArrayList<>();
+        addText(texts, item.path("event").asText(""));
+        addText(texts, item.path("log").asText(""));
+        addText(texts, item.path("title").asText(""));
+        addText(texts, item.path("message").asText(""));
+        addText(texts, item.path("description").asText(""));
+        collectTextFields(item.path("data"), texts);
+        return texts.stream().distinct().toList();
+    }
+
+    private void collectTextFields(JsonNode node, List<String> texts) {
+        if (node == null || node.isMissingNode() || node.isNull()) {
+            return;
+        }
+        if (node.isTextual()) {
+            addText(texts, node.asText(""));
+            return;
+        }
+        if (node.isObject()) {
+            node.fields().forEachRemaining(field -> collectTextFields(field.getValue(), texts));
+            return;
+        }
+        if (node.isArray()) {
+            node.forEach(child -> collectTextFields(child, texts));
+        }
+    }
+
+    private void addText(List<String> texts, String text) {
+        if (text != null && !text.isBlank()) {
+            texts.add(text.trim());
+        }
+    }
+
+    private Optional<ParsedDeposit> parseStructuredDeposit(JsonNode item, String requiredMessage, String fallbackSenderId) {
+        JsonNode data = item.path("data");
+        if (!data.isObject()) {
+            return Optional.empty();
+        }
+
+        String senderId = firstText(
+                fallbackSenderId,
+                data.path("sender_id").asText(""),
+                data.path("senderId").asText(""),
+                data.path("from_id").asText(""),
+                data.path("fromId").asText(""),
+                data.path("user_id").asText(""),
+                data.path("userId").asText(""),
+                data.path("sender").path("id").asText(""),
+                data.path("from").path("id").asText(""),
+                data.path("user").path("id").asText("")
+        );
+        if (senderId.isBlank()) {
+            return Optional.empty();
+        }
+
+        String itemName = firstText(
+                data.path("item").asText(""),
+                data.path("item_name").asText(""),
+                data.path("itemName").asText(""),
+                data.path("name").asText(""),
+                data.path("object").asText("")
+        );
+        if (!itemName.toLowerCase().contains("xanax")) {
+            return Optional.empty();
+        }
+
+        String message = firstText(
+                data.path("message").asText(""),
+                data.path("msg").asText(""),
+                data.path("note").asText(""),
+                data.path("memo").asText("")
+        );
+        if (!message.equalsIgnoreCase(requiredMessage.trim())) {
+            return Optional.empty();
+        }
+
+        int amount = firstPositiveInt(
+                data.path("quantity"),
+                data.path("qty"),
+                data.path("amount"),
+                data.path("count")
+        );
+        if (amount <= 0) {
+            return Optional.empty();
+        }
+
+        return Optional.of(new ParsedDeposit(amount, senderId, message));
+    }
+
+    private String extractSenderTornId(JsonNode item) {
+        return firstText(
+                item.path("sender_id").asText(""),
+                item.path("senderId").asText(""),
+                item.path("from_id").asText(""),
+                item.path("fromId").asText(""),
+                item.path("user_id").asText(""),
+                item.path("userId").asText(""),
+                item.path("sender").path("id").asText(""),
+                item.path("from").path("id").asText(""),
+                item.path("user").path("id").asText(""),
+                item.path("data").path("sender_id").asText(""),
+                item.path("data").path("senderId").asText(""),
+                item.path("data").path("from_id").asText(""),
+                item.path("data").path("fromId").asText(""),
+                item.path("data").path("user_id").asText(""),
+                item.path("data").path("userId").asText(""),
+                item.path("data").path("sender").path("id").asText(""),
+                item.path("data").path("from").path("id").asText(""),
+                item.path("data").path("user").path("id").asText("")
+        );
+    }
+
+    private String firstText(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+        }
+        return "";
+    }
+
+    private int firstPositiveInt(JsonNode... values) {
+        for (JsonNode value : values) {
+            int parsed = value.asInt(0);
+            if (parsed > 0) {
+                return parsed;
+            }
+            if (value.isTextual()) {
+                try {
+                    parsed = Integer.parseInt(value.asText("").trim());
+                    if (parsed > 0) {
+                        return parsed;
+                    }
+                } catch (NumberFormatException ignored) {
+                    // Try the next shape Torn may return.
+                }
+            }
+        }
+        return 0;
     }
 }
