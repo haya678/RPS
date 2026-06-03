@@ -22,7 +22,9 @@ public class AdminAuthorizationService {
         if (provided == null || provided.isBlank()) {
             return false;
         }
-        if (constantTimeEquals(adminProperties.getSecretKey(), provided)) {
+        // Reject the well-known placeholder to prevent accidental admin access
+        if (!adminProperties.isDefaultKey()
+                && constantTimeEquals(adminProperties.getSecretKey(), provided)) {
             return true;
         }
         return constantTimeEquals(tornApiProperties.getMyKey(), provided);

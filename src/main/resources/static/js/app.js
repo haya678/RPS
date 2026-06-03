@@ -1000,8 +1000,7 @@ authForm.addEventListener('submit', async (e) => {
     }
     setLoggedIn(data.user);
     localStorage.setItem('tornId', data.user.torn_id);
-    localStorage.setItem('rpsApiKey', key);
-    localStorage.setItem('rpsPin', pin);
+
     connectWS();
   } catch (err) {
     authError.textContent = 'Network error.';
@@ -1027,8 +1026,7 @@ setAuthMode('login');
 logoutBtn.addEventListener('click', async () => {
   await fetch('/api/auth', { method: 'DELETE', credentials: 'same-origin' }).catch(() => {});
   localStorage.removeItem('tornId');
-  localStorage.removeItem('rpsApiKey');
-  localStorage.removeItem('rpsPin');
+
   setLoggedOut();
 });
 
@@ -1720,31 +1718,7 @@ function setAutoLoginLoading(loading) {
     }
   } catch (_) {}
 
-  const storedKey = localStorage.getItem('rpsApiKey');
-  const storedPin = localStorage.getItem('rpsPin');
-  if (storedKey && storedPin) {
-    try {
-      setAutoLoginLoading(true);
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ api_key: storedKey, pin: storedPin })
-      });
-      const data = await res.json();
-      if (res.ok && data.success && data.user) {
-        setLoggedIn(data.user);
-        localStorage.setItem('tornId', data.user.torn_id);
-        connectWS();
-      } else {
-        localStorage.removeItem('rpsApiKey');
-        localStorage.removeItem('rpsPin');
-      }
-    } catch (_) {
-      localStorage.removeItem('rpsApiKey');
-      localStorage.removeItem('rpsPin');
-    }
-  }
+
   setAutoLoginLoading(false);
   mountGameUiDecorations();
 })();
