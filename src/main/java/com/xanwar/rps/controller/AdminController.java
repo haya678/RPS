@@ -44,7 +44,7 @@ public class AdminController {
     }
 
     @GetMapping("/withdrawals")
-    public ResponseEntity<Map<String, Object>> pending(@RequestParam String adminKey) {
+    public ResponseEntity<Map<String, Object>> pending(@RequestHeader("X-Admin-Key") String adminKey) {
         List<WithdrawalDto> withdrawals = withdrawalService.listPending(adminKey);
         Map<String, Object> body = new HashMap<>();
         body.put("withdrawals", withdrawals);
@@ -60,7 +60,7 @@ public class AdminController {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<Map<String, Object>> listUsers(@RequestParam String adminKey) {
+    public ResponseEntity<Map<String, Object>> listUsers(@RequestHeader("X-Admin-Key") String adminKey) {
         if (!adminAuth.isAuthorized(adminKey)) {
             return ResponseEntity.status(401).body(Map.of("success", false, "error", "Unauthorized."));
         }

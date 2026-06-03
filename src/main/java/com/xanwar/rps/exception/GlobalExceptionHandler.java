@@ -39,7 +39,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> generic(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(error("Server error: " + ex.getMessage()));
+                .body(error("An internal error occurred. Please try again later."));
     }
 
     private static Map<String, Object> error(String message) {
