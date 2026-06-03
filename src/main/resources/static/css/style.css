@@ -2394,7 +2394,13 @@ body.match-only .game-main {
   text-align: center;
 }
 
+#lobby-section {
+  position: relative;
+}
+
 #return-match-modal {
+  position: absolute;
+  inset: 0;
   z-index: 300;
   backdrop-filter: none;
   background-color: #FAF8F5;
@@ -2406,6 +2412,13 @@ body.match-only .game-main {
       #FAF8F5 27px,
       var(--line) 28px
     );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#return-match-modal.hidden {
+  display: none;
 }
 
 .return-match-actions {

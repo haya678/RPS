@@ -1070,6 +1070,7 @@ function escapeHtml(text) {
 }
 
 function joinPublicRoom(roomId) {
+  if (checkActiveMatchBeforeAction()) return;
   prepareMatchTab();
   sendWs({
     action: 'joinRoom',
@@ -1217,7 +1218,18 @@ withdrawBtn.addEventListener('click', async () => {
 });
 
 // ── ROOMS ──────────────────────────────────────────────
+function checkActiveMatchBeforeAction() {
+  const active = getActiveMatch();
+  if (active?.roomId) {
+    showReturnMatchModal(active.roomId);
+    showMsg(lobbyMessage, 'Finish your current match first!', true);
+    return true;
+  }
+  return false;
+}
+
 createRoomBtn.addEventListener('click', () => {
+  if (checkActiveMatchBeforeAction()) return;
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     showMsg(lobbyMessage, 'Connecting... wait a moment and try again.', true);
     return;
@@ -1250,6 +1262,7 @@ createRoomBtn.addEventListener('click', () => {
 });
 
 playBotBtn?.addEventListener('click', () => {
+  if (checkActiveMatchBeforeAction()) return;
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     showMsg(lobbyMessage, 'Connecting... wait a moment and try again.', true);
     return;
@@ -1305,6 +1318,7 @@ copyRoomCodeBtn?.addEventListener('click', async () => {
 });
 
 joinRoomBtn.addEventListener('click', () => {
+  if (checkActiveMatchBeforeAction()) return;
   if (waitingRoomPanel && !waitingRoomPanel.classList.contains('hidden')) {
     showMsg(lobbyMessage, 'Cancel your open room before joining another.', true);
     return;

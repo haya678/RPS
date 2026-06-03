@@ -86,6 +86,16 @@
       </section>
 
       <section id="lobby-section" class="panel">
+        <div id="return-match-modal" class="modal hidden">
+          <div class="modal-card return-match-card panel">
+            <h2>Match Tab Closed</h2>
+            <p>Please return to your match. The duel will not continue on the homepage.</p>
+            <div class="return-match-actions">
+              <button id="reopen-match-tab-btn" class="btn-accent" style="flex: 2;">Open Match Tab</button>
+              <button id="forfeit-match-btn" class="btn-secondary" style="flex: 1;">Forfeit</button>
+            </div>
+          </div>
+        </div>
         <h2>Lobby</h2>
         <div id="lobby-actions" class="lobby-actions">
           <div class="create-room">
@@ -286,17 +296,6 @@
       <h2>Waiting for Opponent</h2>
       <p>Your public room is listed. This match tab will start as soon as someone joins.</p>
       <div class="match-tab-waiting-code">Room <span id="match-tab-waiting-room" class="code"></span></div>
-    </div>
-  </div>
-
-  <div id="return-match-modal" class="modal hidden" role="dialog" aria-labelledby="return-match-title" aria-modal="true">
-    <div class="modal-card panel return-match-card">
-      <h2 id="return-match-title">Match Tab Closed</h2>
-      <p class="info">Please return to your match. The duel will not continue on the homepage.</p>
-      <div class="return-match-actions">
-        <button id="reopen-match-tab-btn" class="btn-accent" type="button">Open Match Tab</button>
-        <button id="forfeit-match-btn" class="btn-secondary" type="button">Forfeit</button>
-      </div>
     </div>
   </div>
 
