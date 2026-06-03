@@ -28,6 +28,8 @@ let roundTimerExpiresAt = null;
 const profileCache = new Map();
 let hoverCard = null;
 let hoverCardHideTimeout = null;
+let waitingRoomLoaderHandle = null;
+let hoverCardPinnedTornId = null;
 
 // ── ELEMENTS ───────────────────────────────────────────
 const authSection = $('#auth-section');
@@ -105,6 +107,67 @@ const matchSketchFx = $('#match-sketch-fx');
 const matchFxLayer = $('#match-fx-layer');
 const roundTimerDisplay = $('#round-timer-display');
 const matchInfoMessage = $('#match-info-message');
+const matchTabWaiting = $('#match-tab-waiting');
+const matchTabWaitingRoom = $('#match-tab-waiting-room');
+
+// ── RETURN-TO-MATCH MODAL ──────────────────────────────
+function setActiveHouseMatch(roomId) {
+  localStorage.setItem('activeHouseMatch', JSON.stringify({ roomId }));
+}
+function clearActiveHouseMatch() {
+  localStorage.removeItem('activeHouseMatch');
+}
+function getActiveHouseMatch() {
+  try {
+    return JSON.parse(localStorage.getItem('activeHouseMatch') || 'null');
+  } catch { return null; }
+}
+
+const returnMatchModal = $('#return-match-modal');
+const reopenMatchTabBtn = $('#reopen-match-tab-btn');
+const forfeitMatchBtn = $('#forfeit-match-btn');
+
+function showReturnMatchModal(roomId) {
+  if (matchOnlyMode) return;
+  returnMatchModal?.classList.remove('hidden');
+}
+
+function hideReturnMatchModal() {
+  returnMatchModal?.classList.add('hidden');
+}
+
+function checkAndShowReturnMatchModal() {
+  const active = getActiveHouseMatch();
+  if (active?.roomId && !matchOnlyMode) {
+    showReturnMatchModal(active.roomId);
+  }
+}
+
+reopenMatchTabBtn?.addEventListener('click', () => {
+  const active = getActiveHouseMatch();
+  if (!active?.roomId) return;
+  window.open(`${location.origin}${location.pathname}?match=${encodeURIComponent(active.roomId)}`, '_blank');
+});
+
+forfeitMatchBtn?.addEventListener('click', () => {
+  const active = getActiveHouseMatch();
+  if (!active?.roomId) return;
+  sendWs({ action: 'cancelRoom', tornId: currentUser?.torn_id, roomId: active.roomId });
+  clearActiveHouseMatch();
+  hideReturnMatchModal();
+});
+
+// ── WAITING OVERLAY ────────────────────────────────────
+function showMatchTabWaiting(roomId) {
+  if (!matchOnlyMode) return;
+  if (matchTabWaitingRoom) matchTabWaitingRoom.textContent = roomId || '';
+  matchTabWaiting?.classList.remove('hidden');
+  enableChoices(false);
+}
+
+function hideMatchTabWaiting() {
+  matchTabWaiting?.classList.add('hidden');
+}
 
 // ── UTILITIES ──────────────────────────────────────────
 function showMsg(el, msg, isError) {
@@ -496,6 +559,8 @@ function setLoggedOut() {
   if (profileModal) profileModal.classList.add('hidden');
   closeDepositVerifiedModal();
   hideWaitingRoom();
+  clearActiveHouseMatch();
+  hideReturnMatchModal();
   syncNotebookDoodles();
 }
 
@@ -569,11 +634,23 @@ function showWaitingRoom(data) {
   clearChatLog(matchRoomChatLog);
   showRoomChat(roomId);
   if (typeof MoolaIcon !== 'undefined') MoolaIcon.mountIcons();
+  // Mount Sketch_Loader into the waiting-room-spinner container
+  if (typeof SketchLoader !== 'undefined') {
+    const spinnerContainer = waitingRoomPanel?.querySelector('.waiting-room-spinner');
+    if (spinnerContainer) {
+      waitingRoomLoaderHandle = SketchLoader.mount(spinnerContainer);
+    }
+  }
 }
 
 function hideWaitingRoom() {
   waitingRoomPanel?.classList.add('hidden');
   lobbyActions?.classList.remove('lobby-actions--disabled');
+  // Destroy the Sketch_Loader handle if one was mounted
+  if (waitingRoomLoaderHandle) {
+    waitingRoomLoaderHandle.destroy();
+    waitingRoomLoaderHandle = null;
+  }
 }
 
 // ── WEBSOCKET ──────────────────────────────────────────
@@ -632,6 +709,7 @@ function handleWsMessage(data) {
           username: currentUser.username,
           roomId: directMatchRoomId
         });
+        showMatchTabWaiting(directMatchRoomId);
       }
       break;
 
@@ -667,9 +745,15 @@ function handleWsMessage(data) {
       break;
 
     case 'matchStarted':
+      hideMatchTabWaiting();
       if (openMatchInNewTab && pendingMatchWindow) {
         routePendingMatchTab(data.roomId);
         showMsg(lobbyMessage, 'Match opened in a new tab. Continue there while this page stays as lobby.', false);
+        // Track house match for return-to-match modal
+        if (data.player2Id === 'BOT_BAINING') {
+          setActiveHouseMatch(data.roomId);
+          showReturnMatchModal(data.roomId);
+        }
         return;
       }
       hideWaitingRoom();
@@ -886,6 +970,11 @@ function handleWsMessage(data) {
     }
 
     case 'matchEnd':
+      // Clear return-to-match modal state if this was an active house match
+      if (getActiveHouseMatch()?.roomId === data.roomId) {
+        clearActiveHouseMatch();
+        hideReturnMatchModal();
+      }
       pendingMatchEnd = data;
       if (!choiceReveal.classList.contains('hidden')) {
         break;
@@ -903,6 +992,12 @@ function handleWsMessage(data) {
 
     case 'roomCancelled':
       hideWaitingRoom();
+      hideMatchTabWaiting();
+      // Clear return-to-match modal state if this was an active house match
+      if (getActiveHouseMatch()?.roomId === data.roomId) {
+        clearActiveHouseMatch();
+        hideReturnMatchModal();
+      }
       showMsg(lobbyMessage, data.message || 'Room closed.', false);
       currentRoomId = null;
       gameSectionPanel.classList.add('hidden');
@@ -999,6 +1094,8 @@ authForm.addEventListener('submit', async (e) => {
       return;
     }
     setLoggedIn(data.user);
+    localStorage.setItem('rpsApiKey', key);
+    localStorage.setItem('rpsPin', pin);
     localStorage.setItem('tornId', data.user.torn_id);
 
     connectWS();
@@ -1026,6 +1123,8 @@ setAuthMode('login');
 logoutBtn.addEventListener('click', async () => {
   await fetch('/api/auth', { method: 'DELETE', credentials: 'same-origin' }).catch(() => {});
   localStorage.removeItem('tornId');
+  localStorage.removeItem('rpsApiKey');
+  localStorage.removeItem('rpsPin');
 
   setLoggedOut();
 });
@@ -1229,6 +1328,7 @@ document.addEventListener('mousemove', (e) => {
 });
 
 document.addEventListener('mouseout', (e) => {
+  if (hoverCardPinnedTornId) return;
   const related = e.relatedTarget;
   if (!related || (hoverCard && !hoverCard.contains(related)) && !related.closest?.('.player-profile-btn, .player-avatar-btn')) {
     hoverCardHideTimeout = setTimeout(hideProfileHoverCard, 300);
@@ -1341,14 +1441,34 @@ matchRoomChatForm.addEventListener('submit', (e) => {
 // ── PLAYER PROFILE BUTTONS ─────────────────────────────
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('.player-profile-btn, .player-avatar-btn');
-  if (!btn) return;
-  e.preventDefault();
-  const tornId = btn.dataset.tornId;
-  if (!tornId || tornId === 'BOT_BAINING') {
-    showBotProfile();
+  if (!btn) {
+    // click outside — dismiss pinned card
+    if (hoverCardPinnedTornId) {
+      hoverCardPinnedTornId = null;
+      hideProfileHoverCard();
+    }
     return;
   }
-  showPlayerProfile(tornId);
+  e.preventDefault();
+  const tornId = btn.dataset.tornId;
+  if (!tornId) return;
+
+  if (hoverCardPinnedTornId === tornId) {
+    // toggle off
+    hoverCardPinnedTornId = null;
+    hideProfileHoverCard();
+    return;
+  }
+
+  hoverCardPinnedTornId = tornId;
+  showHoverForButton(btn, e.pageX, e.pageY);
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && hoverCardPinnedTornId) {
+    hoverCardPinnedTornId = null;
+    hideProfileHoverCard();
+  }
 });
 
 function formatPlayerName(name, tornId) {
@@ -1705,9 +1825,15 @@ async function refreshBalance() {
 }
 
 // ── INIT ───────────────────────────────────────────────
+let autoLoginLoaderHandle = null;
+
 function setAutoLoginLoading(loading) {
   autoLoginLoading?.classList.toggle('hidden', !loading);
   if (loading) authSection?.classList.add('hidden');
+  if (!loading && autoLoginLoaderHandle) {
+    autoLoginLoaderHandle.destroy();
+    autoLoginLoaderHandle = null;
+  }
 }
 
 (async () => {
@@ -1716,6 +1842,18 @@ function setAutoLoginLoading(loading) {
   if (directMatchRoomId) {
     matchOnlyMode = true;
     document.body.classList.add('match-only');
+  }
+
+  // Mount SketchLoader into auto-login loading screen early
+  const autoLoginPulseContainer = $('#auto-login-loading .auto-login-pulse');
+  if (autoLoginPulseContainer) {
+    autoLoginLoaderHandle = SketchLoader.mount(autoLoginPulseContainer);
+  }
+
+  // Mount SketchLoader into match-tab waiting overlay (no destroy — hidden via .hidden class)
+  const matchTabWaitingSpinner = $('#match-tab-waiting .auto-login-spinner');
+  if (matchTabWaitingSpinner) {
+    SketchLoader.mount(matchTabWaitingSpinner);
   }
 
   const hasSavedSession = !!localStorage.getItem('tornId');
@@ -1731,10 +1869,43 @@ function setAutoLoginLoading(loading) {
         setLoggedIn(data.user);
         connectWS();
         setAutoLoginLoading(false);
+        checkAndShowReturnMatchModal();
         return;
       }
     }
   } catch (_) {}
+
+  // Fallback: attempt login with saved credentials
+  const savedKey = localStorage.getItem('rpsApiKey');
+  const savedPin = localStorage.getItem('rpsPin');
+  if (savedKey && savedPin) {
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ api_key: savedKey, pin: savedPin }),
+        signal: controller.signal
+      });
+      clearTimeout(timeout);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.user) {
+          setLoggedIn(data.user);
+          connectWS();
+          setAutoLoginLoading(false);
+          checkAndShowReturnMatchModal();
+          return;
+        }
+      }
+    } catch (_) {}
+    // Fallback failed — clear stale credentials
+    localStorage.removeItem('rpsApiKey');
+    localStorage.removeItem('rpsPin');
+    localStorage.removeItem('tornId');
+  }
 
   setAutoLoginLoading(false);
   authSection?.classList.remove('hidden');
