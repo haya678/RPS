@@ -10,4 +10,5 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByTornId(String tornId);
     List<User> findTop10ByOrderByTotalMatchesWonDesc();
     Optional<User> findByUsernameIgnoreCase(String username);
+    Optional<User> findByRememberToken(String rememberToken);
 }
