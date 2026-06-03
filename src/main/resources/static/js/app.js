@@ -59,6 +59,7 @@ const statNet = $('#stat-net');
 const scoreTarget = $('#score-target');
 const statWinrate = $('#stat-winrate');
 const logoutBtn = $('#logout-btn');
+const adminLink = $('#admin-link');
 const verifyDepositBtn = $('#verify-deposit-btn');
 const depositMessage = $('#deposit-message');
 const withdrawBtn = $('#withdraw-btn');
@@ -160,6 +161,10 @@ forfeitMatchBtn?.addEventListener('click', () => {
 // ── WAITING OVERLAY ────────────────────────────────────
 function showMatchTabWaiting(roomId) {
   if (!matchOnlyMode) return;
+  const activeHouse = getActiveHouseMatch();
+  if (activeHouse && activeHouse.roomId === roomId) {
+    return;
+  }
   if (matchTabWaitingRoom) matchTabWaitingRoom.textContent = roomId || '';
   matchTabWaiting?.classList.remove('hidden');
   enableChoices(false);
@@ -430,6 +435,11 @@ function setLoggedIn(user) {
   authSection.classList.add('hidden');
   gameSection.classList.remove('hidden');
   displayUsername.textContent = currentUser.username;
+  if (adminLink && currentUser.username !== 'Hannath') {
+    adminLink.classList.add('hidden');
+  } else if (adminLink) {
+    adminLink.classList.remove('hidden');
+  }
   updateBalance(currentUser.site_balance);
   if (profileImage) {
     profileImage.src = currentUser.profile_image_url || `https://images.torn.com/avatars/${currentUser.torn_id}.png`;
@@ -552,6 +562,7 @@ function setLoggedOut() {
   ws = null;
   wsIdentified = false;
   currentRoomId = null;
+  if (adminLink) adminLink.classList.add('hidden');
   gameSection.classList.add('hidden');
   authSection.classList.remove('hidden');
   gameSectionPanel.classList.add('hidden');

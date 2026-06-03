@@ -379,7 +379,7 @@ input:focus, select:focus {
 .waiting-room-panel {
   margin-top: 1rem;
   border-color: var(--good);
-  background: rgba(253, 252, 247, 0.88);
+  background: transparent;
 }
 
 .waiting-room-hint {
@@ -2177,7 +2177,7 @@ body.match-only .game-main {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--paper);
+  background: transparent;
 }
 
 .auto-login-card {
@@ -2350,7 +2350,14 @@ body.match-only .game-main {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--paper);
+  background:
+    linear-gradient(90deg, transparent 79px, #ffa0a0 79px, #ffa0a0 81px, transparent 81px),
+    repeating-linear-gradient(
+      to bottom,
+      #FAF8F5,
+      #FAF8F5 27px,
+      var(--line) 28px
+    );
 }
 
 .match-tab-waiting-card {
@@ -2384,6 +2391,18 @@ body.match-only .game-main {
 .return-match-card {
   max-width: 420px;
   text-align: center;
+}
+
+#return-match-modal {
+  z-index: 300;
+  background:
+    linear-gradient(90deg, transparent 79px, #ffa0a0 79px, #ffa0a0 81px, transparent 81px),
+    repeating-linear-gradient(
+      to bottom,
+      #FAF8F5,
+      #FAF8F5 27px,
+      var(--line) 28px
+    );
 }
 
 .return-match-actions {
