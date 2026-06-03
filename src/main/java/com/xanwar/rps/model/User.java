@@ -45,6 +45,9 @@ public class User {
     @Column(name = "pin_hash", length = 120)
     private String pinHash;
 
+    @Column(name = "remember_token", length = 64)
+    private String rememberToken;
+
     @Column(name = "total_moola_betted", nullable = false)
     private Long totalMoolaBetted = 0L;
 
@@ -137,6 +140,14 @@ public class User {
 
     public void setPinHash(String pinHash) {
         this.pinHash = pinHash;
+    }
+
+    public String getRememberToken() {
+        return rememberToken;
+    }
+
+    public void setRememberToken(String rememberToken) {
+        this.rememberToken = rememberToken;
     }
 
     public Long getTotalMoolaBetted() {

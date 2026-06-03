@@ -79,6 +79,10 @@ public class UserService {
         return userRepository.findByTornId(tornId).map(UserDto::from);
     }
 
+    public UserDto toDto(User user) {
+        return UserDto.from(user);
+    }
+
     @Transactional(readOnly = true)
     public User requireUser(String tornId) {
         return userRepository.findByTornId(tornId)
