@@ -531,6 +531,7 @@ button:not(:disabled):hover {
   display: flex;
   align-items: center;
   gap: 1rem;
+  position: relative;
 }
 
 .top-actions {
@@ -2164,6 +2165,7 @@ body.match-only .game-main {
   color: var(--accent);
 }
 
+/* ── AUTO-LOGIN LOADING ────────────────────────── */
 .auto-login-loading {
   position: fixed;
   inset: 0;
@@ -2171,35 +2173,111 @@ body.match-only .game-main {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
-  background: rgba(250, 248, 245, 0.88);
-  backdrop-filter: blur(2px);
+  background: var(--paper);
 }
 
 .auto-login-card {
-  width: min(360px, 92vw);
   text-align: center;
 }
 
-.auto-login-card h2 {
-  margin-bottom: 0.35rem;
+.auto-login-pulse {
+  display: inline-block;
+  animation: autoLoginPulse 0.6s ease-in-out infinite alternate;
 }
 
-.auto-login-card p {
+.pulse-fist {
+  font-size: 3rem;
+  display: block;
+}
+
+.auto-login-text {
+  margin-top: 0.6rem;
+  font-family: 'Gochi Hand', cursive;
+  font-size: 1.1rem;
   color: var(--ink-soft);
+  animation: autoLoginFade 1.2s ease-in-out infinite alternate;
 }
 
-.auto-login-spinner {
-  width: 3rem;
-  height: 3rem;
-  margin: 0 auto 0.8rem;
-  border: 3px dashed var(--ink);
+@keyframes autoLoginPulse {
+  from { transform: scale(1) rotate(-5deg); }
+  to { transform: scale(1.15) rotate(5deg); }
+}
+
+@keyframes autoLoginFade {
+  from { opacity: 0.5; }
+  to { opacity: 1; }
+}
+
+/* ── PROFILE DROPDOWN ─────────────────────────── */
+.profile-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 60;
+  margin-top: 0.5rem;
+  min-width: 240px;
+  animation: dropdownSlide 0.15s ease-out;
+}
+
+.profile-dropdown-card {
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.profile-dropdown-header {
+  font-family: 'Gochi Hand', cursive;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  color: var(--accent);
+}
+
+.profile-dropdown .stats-grid {
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.profile-dropdown .stat-item {
+  padding: 0.3rem 0;
+}
+
+.profile-dropdown .stat-item span {
+  font-size: 0.75rem;
+}
+
+.profile-dropdown .stat-item strong {
+  font-size: 1rem;
+}
+
+.profile-dropdown .btn-small {
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+@keyframes dropdownSlide {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── WAITING ROOM SPINNER ─────────────────────── */
+.waiting-room-spinner-wrap {
+  text-align: center;
+  margin-bottom: 0.75rem;
+}
+
+.waiting-room-spinner {
+  width: 2.5rem;
+  height: 2.5rem;
+  margin: 0 auto;
+  border: 3px solid var(--line);
   border-top-color: var(--good);
   border-radius: 50%;
-  animation: autoLoginSpin 0.9s linear infinite;
+  animation: waitingSpin 0.8s linear infinite;
 }
 
-@keyframes autoLoginSpin {
+@keyframes waitingSpin {
   to { transform: rotate(360deg); }
 }
 

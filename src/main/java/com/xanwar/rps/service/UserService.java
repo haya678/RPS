@@ -79,6 +79,10 @@ public class UserService {
         return userRepository.findByTornId(tornId).map(UserDto::from);
     }
 
+    public UserDto toDto(User user) {
+        return UserDto.from(user);
+    }
+
     @Transactional(readOnly = true)
     public User requireUser(String tornId) {
         return userRepository.findByTornId(tornId)
@@ -88,27 +92,24 @@ public class UserService {
     @Transactional
     public void recordBet(String tornId, long amount) {
         User user = requireUser(tornId);
-        long current = user.getTotalMoolaBetted() == null ? 0L : user.getTotalMoolaBetted();
-        user.setTotalMoolaBetted(current + Math.max(0, amount));
+        user.setTotalMoolaBetted(user.safeMoolaBetted() + Math.max(0, amount));
     }
 
     @Transactional
     public void recordMatchOutcome(String winnerId, String loserId, long winnerPayout, long betAmount) {
         if (!"BOT_BAINING".equals(winnerId)) {
             User winner = requireUser(winnerId);
-            winner.setTotalMatchesPlayed((winner.getTotalMatchesPlayed() == null ? 0 : winner.getTotalMatchesPlayed()) + 1);
-            winner.setTotalMatchesWon((winner.getTotalMatchesWon() == null ? 0 : winner.getTotalMatchesWon()) + 1);
+            winner.setTotalMatchesPlayed(winner.safeMatchesPlayed() + 1);
+            winner.setTotalMatchesWon(winner.safeMatchesWon() + 1);
             long netProfit = Math.max(0L, winnerPayout - betAmount);
-            long currentWon = winner.getTotalMoolaWon() == null ? 0L : winner.getTotalMoolaWon();
-            winner.setTotalMoolaWon(currentWon + netProfit);
+            winner.setTotalMoolaWon(winner.safeMoolaWon() + netProfit);
             userRepository.save(winner);
         }
         if (!"BOT_BAINING".equals(loserId)) {
             User loser = requireUser(loserId);
-            loser.setTotalMatchesPlayed((loser.getTotalMatchesPlayed() == null ? 0 : loser.getTotalMatchesPlayed()) + 1);
+            loser.setTotalMatchesPlayed(loser.safeMatchesPlayed() + 1);
             long stake = Math.max(0L, betAmount);
-            long currentLost = loser.getTotalMoolaLost() == null ? 0L : loser.getTotalMoolaLost();
-            loser.setTotalMoolaLost(currentLost + stake);
+            loser.setTotalMoolaLost(loser.safeMoolaLost() + stake);
             userRepository.save(loser);
         }
     }

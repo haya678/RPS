@@ -45,6 +45,9 @@ public class User {
     @Column(name = "pin_hash", length = 120)
     private String pinHash;
 
+    @Column(name = "remember_token", length = 64)
+    private String rememberToken;
+
     @Column(name = "total_moola_betted", nullable = false)
     private Long totalMoolaBetted = 0L;
 
@@ -139,6 +142,14 @@ public class User {
         this.pinHash = pinHash;
     }
 
+    public String getRememberToken() {
+        return rememberToken;
+    }
+
+    public void setRememberToken(String rememberToken) {
+        this.rememberToken = rememberToken;
+    }
+
     public Long getTotalMoolaBetted() {
         return totalMoolaBetted;
     }
@@ -206,4 +217,13 @@ public class User {
             totalMatchesWon = 0;
         }
     }
+
+    // ── Null-safe convenience getters ──────────────────────────────────
+
+    public long safeBalance()        { return siteBalance        != null ? siteBalance        : 0L; }
+    public long safeMoolaBetted()    { return totalMoolaBetted   != null ? totalMoolaBetted   : 0L; }
+    public long safeMoolaWon()       { return totalMoolaWon      != null ? totalMoolaWon      : 0L; }
+    public long safeMoolaLost()      { return totalMoolaLost     != null ? totalMoolaLost     : 0L; }
+    public int  safeMatchesPlayed()  { return totalMatchesPlayed != null ? totalMatchesPlayed : 0;  }
+    public int  safeMatchesWon()     { return totalMatchesWon    != null ? totalMatchesWon    : 0;  }
 }

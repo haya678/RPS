@@ -3,6 +3,8 @@ package com.xanwar.rps.websocket;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xanwar.rps.model.GameRoom;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -13,6 +15,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Component
 public class GameSessionRegistry {
+
+    private static final Logger log = LoggerFactory.getLogger(GameSessionRegistry.class);
 
     private final ObjectMapper objectMapper;
     private final ConcurrentHashMap<String, WebSocketSession> sessionsById = new ConcurrentHashMap<>();
@@ -65,7 +69,7 @@ public class GameSessionRegistry {
         try {
             session.sendMessage(new TextMessage(objectMapper.writeValueAsString(payload)));
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to send WebSocket message", e);
+            log.warn("Failed to send WebSocket message to session {}: {}", session.getId(), e.getMessage());
         }
     }
 

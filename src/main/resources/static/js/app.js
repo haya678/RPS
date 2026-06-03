@@ -1000,8 +1000,7 @@ authForm.addEventListener('submit', async (e) => {
     }
     setLoggedIn(data.user);
     localStorage.setItem('tornId', data.user.torn_id);
-    localStorage.setItem('rpsApiKey', key);
-    localStorage.setItem('rpsPin', pin);
+
     connectWS();
   } catch (err) {
     authError.textContent = 'Network error.';
@@ -1027,8 +1026,7 @@ setAuthMode('login');
 logoutBtn.addEventListener('click', async () => {
   await fetch('/api/auth', { method: 'DELETE', credentials: 'same-origin' }).catch(() => {});
   localStorage.removeItem('tornId');
-  localStorage.removeItem('rpsApiKey');
-  localStorage.removeItem('rpsPin');
+
   setLoggedOut();
 });
 
@@ -1213,6 +1211,7 @@ refreshLeaderboardBtn.addEventListener('click', () => loadLeaderboard());
 profileButton?.addEventListener('click', (e) => {
   if (!currentUser) return;
   e.preventDefault();
+  e.stopPropagation();
   openProfileModal(currentUser.username, currentUser);
 });
 
@@ -1236,9 +1235,17 @@ document.addEventListener('mouseout', (e) => {
   }
 });
 
-closeProfileModalBtn?.addEventListener('click', () => profileModal?.classList.add('hidden'));
-profileModal?.addEventListener('click', (e) => {
-  if (e.target === profileModal) profileModal.classList.add('hidden');
+closeProfileModalBtn?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  profileModal?.classList.add('hidden');
+});
+
+document.addEventListener('click', (e) => {
+  if (profileModal && !profileModal.classList.contains('hidden')) {
+    if (!profileModal.contains(e.target) && !profileButton?.contains(e.target)) {
+      profileModal.classList.add('hidden');
+    }
+  }
 });
 
 function closeDepositVerifiedModal() {
@@ -1434,6 +1441,10 @@ function showBotProfile() {
 }
 
 function openProfileModal(username, data) {
+  if (profileModal && !profileModal.classList.contains('hidden')) {
+    profileModal.classList.add('hidden');
+    return;
+  }
   const winRate = data.total_matches_played === 0 ? 0
     : (data.total_matches_won * 100.0) / data.total_matches_played;
   const won = asNumber(data.total_moola_won);
@@ -1696,6 +1707,7 @@ async function refreshBalance() {
 // ── INIT ───────────────────────────────────────────────
 function setAutoLoginLoading(loading) {
   autoLoginLoading?.classList.toggle('hidden', !loading);
+  if (loading) authSection?.classList.add('hidden');
 }
 
 (async () => {
@@ -1706,8 +1718,12 @@ function setAutoLoginLoading(loading) {
     document.body.classList.add('match-only');
   }
 
-  try {
+  const hasSavedSession = !!localStorage.getItem('tornId');
+  if (hasSavedSession) {
     setAutoLoginLoading(true);
+  }
+
+  try {
     const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
     if (res.ok) {
       const data = await res.json();
@@ -1720,31 +1736,7 @@ function setAutoLoginLoading(loading) {
     }
   } catch (_) {}
 
-  const storedKey = localStorage.getItem('rpsApiKey');
-  const storedPin = localStorage.getItem('rpsPin');
-  if (storedKey && storedPin) {
-    try {
-      setAutoLoginLoading(true);
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ api_key: storedKey, pin: storedPin })
-      });
-      const data = await res.json();
-      if (res.ok && data.success && data.user) {
-        setLoggedIn(data.user);
-        localStorage.setItem('tornId', data.user.torn_id);
-        connectWS();
-      } else {
-        localStorage.removeItem('rpsApiKey');
-        localStorage.removeItem('rpsPin');
-      }
-    } catch (_) {
-      localStorage.removeItem('rpsApiKey');
-      localStorage.removeItem('rpsPin');
-    }
-  }
   setAutoLoginLoading(false);
+  authSection?.classList.remove('hidden');
   mountGameUiDecorations();
 })();

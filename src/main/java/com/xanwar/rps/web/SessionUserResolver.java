@@ -11,9 +11,6 @@ public class SessionUserResolver {
         if (sessionTornId instanceof String s && !s.isBlank()) {
             return s;
         }
-        if (bodyTornId != null && !bodyTornId.isBlank()) {
-            return bodyTornId;
-        }
         throw new IllegalArgumentException("Not authenticated. Log in with your Torn API key.");
     }
 }
