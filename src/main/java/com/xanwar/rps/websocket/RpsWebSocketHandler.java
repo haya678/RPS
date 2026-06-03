@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xanwar.rps.service.ChatService;
 import com.xanwar.rps.service.GameRoomService;
 import org.springframework.stereotype.Component;
+import com.xanwar.rps.util.WebSocketMessages;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -71,8 +72,6 @@ public class RpsWebSocketHandler extends TextWebSocketHandler {
     }
 
     private void sendError(WebSocketSession session, String error) {
-        sessionRegistry.sendJson(session, objectMapper.createObjectNode()
-                .put("action", "error")
-                .put("message", error));
+        WebSocketMessages.sendError(sessionRegistry, objectMapper, session, error);
     }
 }

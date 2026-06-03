@@ -10,6 +10,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.xanwar.rps.util.ApiResponse;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -37,10 +39,9 @@ public class AdminController {
 
     @PostMapping("/verify")
     public ResponseEntity<Map<String, Object>> verify(@Valid @RequestBody AdminKeyRequest request) {
-        if (!adminAuth.isAuthorized(request.adminKey())) {
-            return ResponseEntity.status(401).body(Map.of("success", false, "error", "Unauthorized."));
-        }
-        return ResponseEntity.ok(Map.of("success", true));
+        ResponseEntity<Map<String, Object>> denied = requireAdmin(request.adminKey());
+        if (denied != null) return denied;
+        return ResponseEntity.ok(ApiResponse.success());
     }
 
     @GetMapping("/withdrawals")
@@ -61,9 +62,8 @@ public class AdminController {
 
     @GetMapping("/users")
     public ResponseEntity<Map<String, Object>> listUsers(@RequestParam String adminKey) {
-        if (!adminAuth.isAuthorized(adminKey)) {
-            return ResponseEntity.status(401).body(Map.of("success", false, "error", "Unauthorized."));
-        }
+        ResponseEntity<Map<String, Object>> denied = requireAdmin(adminKey);
+        if (denied != null) return denied;
 
         List<Map<String, Object>> users = userRepository.findAll().stream()
                 .map(u -> {
@@ -88,23 +88,28 @@ public class AdminController {
     public ResponseEntity<Map<String, Object>> credit(
             @Valid @RequestBody CreditRequest request
     ) {
-        if (!adminAuth.isAuthorized(request.adminKey())) {
-            return ResponseEntity.status(401).body(Map.of("success", false, "error", "Unauthorized."));
-        }
+        ResponseEntity<Map<String, Object>> denied = requireAdmin(request.adminKey());
+        if (denied != null) return denied;
 
         if (request.amount() <= 0) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "Amount must be positive."));
+            return ResponseEntity.badRequest().body(ApiResponse.error("Amount must be positive."));
         }
 
         boolean success = walletService.creditBalanceByUsername(request.username(), request.amount());
         if (!success) {
-            return ResponseEntity.badRequest().body(Map.of("success", false, "error", "User '" + request.username() + "' not found."));
+            return ResponseEntity.badRequest().body(ApiResponse.error("User '" + request.username() + "' not found."));
         }
 
-        return ResponseEntity.ok(Map.of(
-                "success", true,
+        return ResponseEntity.ok(ApiResponse.success(
                 "message", "Successfully credited " + request.amount() + " Moola to user '" + request.username() + "'."
         ));
+    }
+
+    private ResponseEntity<Map<String, Object>> requireAdmin(String adminKey) {
+        if (!adminAuth.isAuthorized(adminKey)) {
+            return ResponseEntity.status(401).body(ApiResponse.error("Unauthorized."));
+        }
+        return null;
     }
 
     record CreditRequest(
