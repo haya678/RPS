@@ -90,3 +90,19 @@ The enhancements are:
 5. THE Sketch_Loader SHALL replace the existing CSS spinner on the Match_Tab waiting screen (`#match-tab-waiting`).
 6. WHERE additional Loading_Screens are added to the App in future, THE App SHALL use the Sketch_Loader component regardless of the timing constraints of those screens, so that all loading states share the same animation.
 7. THE Sketch_Loader SHALL check the `prefers-reduced-motion` media query immediately upon initialization, before any animation begins. IF the reduced-motion preference is active at that point, THEN THE Sketch_Loader SHALL display a static fully-drawn circle instead of the looping animation.
+
+---
+
+### Requirement 5: Player Profile Stats Panel
+
+**User Story:** As a user, I want to see a player's game statistics when I click on their profile anywhere in the app, so that I can quickly assess their record without navigating away from my current view.
+
+#### Acceptance Criteria
+
+1. WHEN a user clicks on a player's avatar or username in the lobby, leaderboard, or match room, THE Stats_Panel SHALL appear adjacent to the clicked profile element displaying that player's statistics.
+2. THE Stats_Panel SHALL display the following fields sourced from the `/api/user/{tornId}` endpoint: `username`, `profile_image_url`, `total_matches_played`, `total_matches_won`, `win_rate`, `total_moola_won`, `total_moola_lost`, and `net_profit_loss`.
+3. WHILE the Stats_Panel is waiting for the `/api/user/{tornId}` response, THE Stats_Panel SHALL display the Sketch_Loader animation in place of the statistics fields.
+4. IF the `/api/user/{tornId}` request returns a non-2xx response or a network error occurs, THEN THE Stats_Panel SHALL display an error message in place of the statistics and SHALL provide a retry action.
+5. WHEN a user clicks outside the Stats_Panel or clicks a second profile element, THE Stats_Panel SHALL close the currently open panel before opening a new one, so that no more than one Stats_Panel is visible at a time.
+6. THE Stats_Panel SHALL position itself so that it does not overflow the visible viewport; IF the default position would clip the panel, THEN THE Stats_Panel SHALL reposition to remain fully within the viewport boundaries.
+7. THE Stats_Panel SHALL be fully keyboard-accessible: THE App SHALL ensure the panel can be dismissed by pressing the Escape key, and all interactive controls inside the panel SHALL be reachable via Tab navigation.
