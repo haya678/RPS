@@ -277,6 +277,10 @@ function setMatchOnlyMode() {
 }
 
 function returnToHome() {
+  // If the match that just ended/exited was a bot match, clear the tracking
+  // (match is over — user clicked "Return home" from the result card)
+  clearActiveHouseMatch();
+  hideReturnMatchModal();
   resetMatchUI();
   if (matchOnlyMode) {
     window.location.href = `${location.origin}${location.pathname}`;
@@ -746,12 +750,14 @@ function handleWsMessage(data) {
 
     case 'matchStarted':
       hideMatchTabWaiting();
+      // Always track bot matches so the return-to-match modal can fire
+      if (data.player2Id === 'BOT_BAINING') {
+        setActiveHouseMatch(data.roomId);
+      }
       if (openMatchInNewTab && pendingMatchWindow) {
         routePendingMatchTab(data.roomId);
         showMsg(lobbyMessage, 'Match opened in a new tab. Continue there while this page stays as lobby.', false);
-        // Track house match for return-to-match modal
         if (data.player2Id === 'BOT_BAINING') {
-          setActiveHouseMatch(data.roomId);
           showReturnMatchModal(data.roomId);
         }
         return;
@@ -817,6 +823,13 @@ function handleWsMessage(data) {
         routePendingMatchTab(data.roomId);
         showMsg(lobbyMessage, 'Resuming match in the new tab. Stay here for the lobby.', false);
         return;
+      }
+      // If this is a bot match and we are NOT in match-only mode (i.e. the main lobby page),
+      // show the return-to-match warning instead of opening the game panel inline.
+      if (data.player2Id === 'BOT_BAINING' && !matchOnlyMode) {
+        setActiveHouseMatch(data.roomId);
+        showReturnMatchModal(data.roomId);
+        break;
       }
       hideWaitingRoom();
       updateMatchRoomId(data.roomId);
