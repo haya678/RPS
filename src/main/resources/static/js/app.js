@@ -572,7 +572,7 @@ function setLoggedOut() {
   if (profileModal) profileModal.classList.add('hidden');
   closeDepositVerifiedModal();
   hideWaitingRoom();
-  clearActiveHouseMatch();
+  clearActiveMatch();
   hideReturnMatchModal();
   syncNotebookDoodles();
 }
@@ -768,6 +768,14 @@ function handleWsMessage(data) {
         showReturnMatchModal(data.roomId);
         return;
       }
+
+      // If we are on the homepage (lobby), show the "Match Tab Closed" blocker instead of opening arena
+      if (!matchOnlyMode) {
+        hideWaitingRoom();
+        showReturnMatchModal(data.roomId);
+        return;
+      }
+
       hideWaitingRoom();
       updateMatchRoomId(data.roomId);
       currentRoomId = data.roomId;

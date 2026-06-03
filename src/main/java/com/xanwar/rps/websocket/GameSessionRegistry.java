@@ -22,7 +22,7 @@ public class GameSessionRegistry {
     private final ConcurrentHashMap<String, WebSocketSession> sessionsById = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String> sessionToTornId = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String> sessionToUsername = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<String, String> tornIdToSessionId = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<String, Set<String>> tornIdToSessionIds = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, Set<String>> roomToSessionIds = new ConcurrentHashMap<>();
 
     public GameSessionRegistry(ObjectMapper objectMapper) {
@@ -38,7 +38,13 @@ public class GameSessionRegistry {
         sessionToUsername.remove(session.getId());
         String tornId = sessionToTornId.remove(session.getId());
         if (tornId != null) {
-            tornIdToSessionId.remove(tornId, session.getId());
+            Set<String> sids = tornIdToSessionIds.get(tornId);
+            if (sids != null) {
+                sids.remove(session.getId());
+                if (sids.isEmpty()) {
+                    tornIdToSessionIds.remove(tornId);
+                }
+            }
         }
         roomToSessionIds.values().forEach(set -> set.remove(session.getId()));
     }
@@ -46,7 +52,7 @@ public class GameSessionRegistry {
     public void registerIdentity(WebSocketSession session, String tornId, String username) {
         sessionToTornId.put(session.getId(), tornId);
         sessionToUsername.put(session.getId(), username);
-        tornIdToSessionId.put(tornId, session.getId());
+        tornIdToSessionIds.computeIfAbsent(tornId, k -> ConcurrentHashMap.newKeySet()).add(session.getId());
     }
 
     public void bindPlayer(WebSocketSession session, String tornId, String username, String roomId) {
@@ -77,9 +83,24 @@ public class GameSessionRegistry {
         sessionsById.values().forEach(session -> sendJson(session, payload));
     }
 
+    public void sendToUser(String tornId, JsonNode payload) {
+        Set<String> sids = tornIdToSessionIds.get(tornId);
+        if (sids != null) {
+            for (String sid : sids) {
+                sendToSessionId(sid, payload);
+            }
+        }
+    }
+
     public void sendToRoom(GameRoom room, JsonNode payload) {
-        sendToSessionId(room.getPlayer1SessionId(), payload);
-        sendToSessionId(room.getPlayer2SessionId(), payload);
+        // Broadcast to all sessions explicitly bound to this room ID
+        sendToRoomId(room.getRoomId(), payload);
+        
+        // ALSO broadcast to all sessions of the players involved (e.g. their lobby tabs)
+        sendToUser(room.getPlayer1Id(), payload);
+        if (room.getPlayer2Id() != null) {
+            sendToUser(room.getPlayer2Id(), payload);
+        }
     }
 
     public void sendToRoomId(String roomId, JsonNode payload) {
