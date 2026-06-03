@@ -32,6 +32,7 @@ let hoverCardHideTimeout = null;
 // ── ELEMENTS ───────────────────────────────────────────
 const authSection = $('#auth-section');
 const gameSection = $('#game-section');
+const autoLoginLoading = $('#auto-login-loading');
 const authForm = $('#auth-form');
 const authError = $('#auth-error');
 const tabLogin = $('#tab-login');
@@ -1211,7 +1212,8 @@ refreshLeaderboardBtn.addEventListener('click', () => loadLeaderboard());
 
 profileButton?.addEventListener('click', (e) => {
   if (!currentUser) return;
-  handleProfileButtonInteraction(e);
+  e.preventDefault();
+  openProfileModal(currentUser.username, currentUser);
 });
 
 document.addEventListener('mouseover', (e) => {
@@ -1232,13 +1234,6 @@ document.addEventListener('mouseout', (e) => {
   if (!related || (hoverCard && !hoverCard.contains(related)) && !related.closest?.('.player-profile-btn, .player-avatar-btn')) {
     hoverCardHideTimeout = setTimeout(hideProfileHoverCard, 300);
   }
-});
-
-document.addEventListener('click', (e) => {
-  const btn = e.target.closest('.player-profile-btn, .player-avatar-btn');
-  if (!btn) return;
-  handleProfileButtonInteraction(e);
-  e.preventDefault();
 });
 
 closeProfileModalBtn?.addEventListener('click', () => profileModal?.classList.add('hidden'));
@@ -1340,6 +1335,7 @@ matchRoomChatForm.addEventListener('submit', (e) => {
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('.player-profile-btn, .player-avatar-btn');
   if (!btn) return;
+  e.preventDefault();
   const tornId = btn.dataset.tornId;
   if (!tornId || tornId === 'BOT_BAINING') {
     showBotProfile();
@@ -1410,7 +1406,6 @@ async function loadMatchPlayerProfile(tornId, slot) {
     const url = data.profile_image_url || `https://images.torn.com/avatars/${tornId}.png`;
     setMatchAvatar(slot, url);
     const rec = `${data.total_matches_won}W / ${data.total_matches_played}`;
-    if (recordEl) recordEl.textContent = rec;
     if (duelRecord) duelRecord.textContent = rec;
   } catch (_) {}
 }
@@ -1699,6 +1694,10 @@ async function refreshBalance() {
 }
 
 // ── INIT ───────────────────────────────────────────────
+function setAutoLoginLoading(loading) {
+  autoLoginLoading?.classList.toggle('hidden', !loading);
+}
+
 (async () => {
   const urlParams = new URLSearchParams(location.search);
   directMatchRoomId = urlParams.get('match');
@@ -1708,12 +1707,14 @@ async function refreshBalance() {
   }
 
   try {
+    setAutoLoginLoading(true);
     const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
     if (res.ok) {
       const data = await res.json();
       if (data.success && data.user) {
         setLoggedIn(data.user);
         connectWS();
+        setAutoLoginLoading(false);
         return;
       }
     }
@@ -1723,6 +1724,7 @@ async function refreshBalance() {
   const storedPin = localStorage.getItem('rpsPin');
   if (storedKey && storedPin) {
     try {
+      setAutoLoginLoading(true);
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         credentials: 'same-origin',
@@ -1743,5 +1745,6 @@ async function refreshBalance() {
       localStorage.removeItem('rpsPin');
     }
   }
+  setAutoLoginLoading(false);
   mountGameUiDecorations();
 })();

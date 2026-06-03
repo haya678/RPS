@@ -46,6 +46,32 @@ class TornXanaxDepositParserTest {
     }
 
     @Test
+    void parsesTransferWhenMessageIsStoredSeparately() {
+        Optional<TornXanaxDepositParser.ParsedDeposit> parsed = TornXanaxDepositParser.parseTransfer(
+                "You received 4x Xanax from Player [24680].",
+                "RPS",
+                "RPS",
+                null
+        );
+
+        assertThat(parsed).isPresent();
+        assertThat(parsed.get().xanaxAmount()).isEqualTo(4);
+        assertThat(parsed.get().senderTornId()).isEqualTo("24680");
+    }
+
+    @Test
+    void rejectsSeparateWrongMessage() {
+        Optional<TornXanaxDepositParser.ParsedDeposit> parsed = TornXanaxDepositParser.parseTransfer(
+                "You received 4x Xanax from Player [24680].",
+                "not-rps",
+                "RPS",
+                null
+        );
+
+        assertThat(parsed).isEmpty();
+    }
+
+    @Test
     void rejectsWrongDepositMessage() {
         Optional<TornXanaxDepositParser.ParsedDeposit> parsed = TornXanaxDepositParser.parse(
                 "You received 1x Xanax from Player [12345] with the message: wrong",

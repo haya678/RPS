@@ -39,7 +39,6 @@
           </button>
           <div>
             <span id="display-username"></span>
-            <span id="display-balance" class="balance">0</span>
           </div>
         </div>
         <div class="top-actions">
@@ -49,7 +48,10 @@
       </div>
 
       <section id="wallet-section" class="panel">
-        <h2>Wallet</h2>
+        <div class="wallet-header">
+          <h2>Wallet</h2>
+          <span id="display-balance" class="balance">0</span>
+        </div>
         <div class="wallet-actions">
           <div class="wallet-col">
             <p class="info" id="deposit-instructions">Loading deposit instructions...</p>
@@ -250,6 +252,34 @@
       </aside>
     </div>
   </main>
+
+  <div id="auto-login-loading" class="auto-login-loading hidden" role="status" aria-live="polite">
+    <div class="auto-login-card panel">
+      <div class="auto-login-spinner" aria-hidden="true"></div>
+      <h2>Logging In</h2>
+      <p>Checking your saved Torn login...</p>
+    </div>
+  </div>
+
+  <div id="match-tab-waiting" class="match-tab-waiting hidden" role="status" aria-live="polite">
+    <div class="match-tab-waiting-card panel">
+      <div class="auto-login-spinner" aria-hidden="true"></div>
+      <h2>Waiting for Opponent</h2>
+      <p>Your public room is listed. This match tab will start as soon as someone joins.</p>
+      <div class="match-tab-waiting-code">Room <span id="match-tab-waiting-room" class="code"></span></div>
+    </div>
+  </div>
+
+  <div id="return-match-modal" class="modal hidden" role="dialog" aria-labelledby="return-match-title" aria-modal="true">
+    <div class="modal-card panel return-match-card">
+      <h2 id="return-match-title">Match Tab Closed</h2>
+      <p class="info">Please return to your match. The duel will not continue on the homepage.</p>
+      <div class="return-match-actions">
+        <button id="reopen-match-tab-btn" class="btn-accent" type="button">Open Match Tab</button>
+        <button id="forfeit-match-btn" class="btn-secondary" type="button">Forfeit</button>
+      </div>
+    </div>
+  </div>
 
   <div id="deposit-verified-modal" class="modal hidden" role="dialog" aria-labelledby="deposit-verified-title" aria-modal="true">
     <div class="modal-card panel deposit-verified-card">

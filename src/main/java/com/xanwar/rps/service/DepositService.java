@@ -126,8 +126,8 @@ public class DepositService {
             int moolaPerXanax,
             String source
     ) {
-        if (node == null || node.isMissingNode() || node.isNull() || !node.isObject()) {
-            log.debug("[{}] No node to process (missing/null/not-object)", source);
+        if (node == null || node.isMissingNode() || node.isNull() || (!node.isObject() && !node.isArray())) {
+            log.debug("[{}] No node to process (missing/null/not-activity-list)", source);
             return 0L;
         }
 
@@ -139,11 +139,9 @@ public class DepositService {
         int skippedWrongUser = 0;
         int skippedDuplicate = 0;
 
-        Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
-        while (fields.hasNext()) {
-            Map.Entry<String, JsonNode> entry = fields.next();
-            String eventId = entry.getKey();
-            JsonNode item = entry.getValue();
+        for (ActivityEntry entry : activityEntries(node)) {
+            String eventId = entry.id();
+            JsonNode item = entry.item();
 
             if (eventId == null || eventId.isBlank()) {
                 if (item.has("id")) {
@@ -177,6 +175,19 @@ public class DepositService {
                             eventText.length() > 120 ? eventText.substring(0, 120) + "..." : eventText);
 
                     parsed = TornXanaxDepositParser.parse(eventText, requiredMessage, fallbackSenderId);
+                    if (parsed.isPresent()) {
+                        break;
+                    }
+                }
+            }
+            if (parsed.isEmpty()) {
+                String separateMessage = extractTransferMessage(item, eventTexts);
+                for (String eventText : eventTexts) {
+                    if (!eventText.toLowerCase().contains("xanax")) {
+                        continue;
+                    }
+                    parsed = TornXanaxDepositParser.parseTransfer(
+                            eventText, separateMessage, requiredMessage, fallbackSenderId);
                     if (parsed.isPresent()) {
                         break;
                     }
@@ -226,6 +237,24 @@ public class DepositService {
                 source, processedCount, totalMoola / moolaPerXanax,
                 skippedOld, skippedNoText, skippedNoMatch, skippedWrongUser, skippedDuplicate);
         return totalMoola;
+    }
+
+    private List<ActivityEntry> activityEntries(JsonNode node) {
+        List<ActivityEntry> entries = new ArrayList<>();
+        if (node.isObject()) {
+            Iterator<Map.Entry<String, JsonNode>> fields = node.fields();
+            while (fields.hasNext()) {
+                Map.Entry<String, JsonNode> field = fields.next();
+                entries.add(new ActivityEntry(field.getKey(), field.getValue()));
+            }
+        } else if (node.isArray()) {
+            for (int i = 0; i < node.size(); i++) {
+                JsonNode item = node.get(i);
+                String id = firstText(item.path("id").asText(""), item.path("event_id").asText(""));
+                entries.add(new ActivityEntry(id.isBlank() ? String.valueOf(i) : id, item));
+            }
+        }
+        return entries;
     }
 
     private List<String> extractActivityTexts(JsonNode item) {
@@ -318,6 +347,35 @@ public class DepositService {
         return Optional.of(new ParsedDeposit(amount, senderId, message));
     }
 
+    private String extractTransferMessage(JsonNode item, List<String> eventTexts) {
+        JsonNode data = item.path("data");
+        String structured = firstText(
+                item.path("message").asText(""),
+                item.path("msg").asText(""),
+                item.path("note").asText(""),
+                item.path("memo").asText(""),
+                data.path("message").asText(""),
+                data.path("msg").asText(""),
+                data.path("note").asText(""),
+                data.path("memo").asText("")
+        );
+        if (!structured.isBlank()) {
+            return structured;
+        }
+
+        for (String text : eventTexts) {
+            String stripped = TornXanaxDepositParser.stripHtml(text).trim();
+            if (!stripped.toLowerCase().contains("message")) {
+                continue;
+            }
+            int colon = stripped.indexOf(':');
+            if (colon >= 0 && colon + 1 < stripped.length()) {
+                return stripped.substring(colon + 1).trim();
+            }
+        }
+        return "";
+    }
+
     private String extractSenderTornId(JsonNode item) {
         return firstText(
                 item.path("sender_id").asText(""),
@@ -368,5 +426,8 @@ public class DepositService {
             }
         }
         return 0;
+    }
+
+    private record ActivityEntry(String id, JsonNode item) {
     }
 }

@@ -441,6 +441,26 @@ input:focus, select:focus {
 
 .withdraw-row input { flex: 1; }
 
+.wallet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.8rem;
+}
+
+.wallet-header h2 {
+  margin-bottom: 0;
+}
+
+.wallet-header .balance {
+  padding: 0.25rem 0.65rem;
+  border: 2px dashed var(--ink);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.85);
+  white-space: nowrap;
+}
+
 /* ── BUTTONS ─────────────────────────────────── */
 button {
   cursor: pointer;
@@ -2144,6 +2164,45 @@ body.match-only .game-main {
   color: var(--accent);
 }
 
+.auto-login-loading {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(250, 248, 245, 0.88);
+  backdrop-filter: blur(2px);
+}
+
+.auto-login-card {
+  width: min(360px, 92vw);
+  text-align: center;
+}
+
+.auto-login-card h2 {
+  margin-bottom: 0.35rem;
+}
+
+.auto-login-card p {
+  color: var(--ink-soft);
+}
+
+.auto-login-spinner {
+  width: 3rem;
+  height: 3rem;
+  margin: 0 auto 0.8rem;
+  border: 3px dashed var(--ink);
+  border-top-color: var(--good);
+  border-radius: 50%;
+  animation: autoLoginSpin 0.9s linear infinite;
+}
+
+@keyframes autoLoginSpin {
+  to { transform: rotate(360deg); }
+}
+
 /* ── UTILITIES ───────────────────────────────── */
 .hidden { display: none !important; }
 
@@ -2161,6 +2220,7 @@ body.match-only .game-main {
 @media (max-width: 480px) {
   header h1 { font-size: 2.8rem; }
   .lobby-actions { grid-template-columns: 1fr; }
+  .wallet-header { align-items: flex-start; flex-direction: column; gap: 0.45rem; }
   #rps-choices { gap: 0.6rem; }
   .choice-btn { padding: 0.8rem 1.2rem; }
   .choice-icon { font-size: 2.5rem; }
