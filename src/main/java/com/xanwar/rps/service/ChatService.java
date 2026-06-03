@@ -9,6 +9,8 @@ import com.xanwar.rps.websocket.GameSessionRegistry;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.WebSocketSession;
 
+import com.xanwar.rps.util.WebSocketMessages;
+
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -125,15 +127,7 @@ public class ChatService {
     }
 
     private String requiredText(JsonNode json, String field) {
-        JsonNode node = json.path(field);
-        if (node.isMissingNode() || node.isNull()) {
-            throw new IllegalArgumentException("Missing field: " + field);
-        }
-        String value = node.asText().trim();
-        if (value.isEmpty()) {
-            throw new IllegalArgumentException("Missing field: " + field);
-        }
-        return value;
+        return WebSocketMessages.requiredText(json, field);
     }
 
     private void sendChatError(WebSocketSession session, String message) {

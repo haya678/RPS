@@ -206,4 +206,13 @@ public class User {
             totalMatchesWon = 0;
         }
     }
+
+    // ── Null-safe convenience getters ──────────────────────────────────
+
+    public long safeBalance()        { return siteBalance        != null ? siteBalance        : 0L; }
+    public long safeMoolaBetted()    { return totalMoolaBetted   != null ? totalMoolaBetted   : 0L; }
+    public long safeMoolaWon()       { return totalMoolaWon      != null ? totalMoolaWon      : 0L; }
+    public long safeMoolaLost()      { return totalMoolaLost     != null ? totalMoolaLost     : 0L; }
+    public int  safeMatchesPlayed()  { return totalMatchesPlayed != null ? totalMatchesPlayed : 0;  }
+    public int  safeMatchesWon()     { return totalMatchesWon    != null ? totalMatchesWon    : 0;  }
 }

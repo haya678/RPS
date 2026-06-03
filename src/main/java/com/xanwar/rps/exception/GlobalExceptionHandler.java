@@ -8,7 +8,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import java.util.HashMap;
+import com.xanwar.rps.util.ApiResponse;
+
 import java.util.Map;
 
 @RestControllerAdvice
@@ -18,17 +19,17 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(TornApiException.class)
     public ResponseEntity<Map<String, Object>> tornApi(TornApiException ex) {
-        return ResponseEntity.badRequest().body(error(ex.getMessage()));
+        return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Map<String, Object>> badRequest(IllegalArgumentException ex) {
-        return ResponseEntity.badRequest().body(error(ex.getMessage()));
+        return ResponseEntity.badRequest().body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(SecurityException.class)
     public ResponseEntity<Map<String, Object>> forbidden(SecurityException ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error(ex.getMessage()));
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error(ex.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -37,20 +38,13 @@ public class GlobalExceptionHandler {
                 .findFirst()
                 .map(err -> err.getField() + ": " + err.getDefaultMessage())
                 .orElse("Validation failed.");
-        return ResponseEntity.badRequest().body(error(msg));
+        return ResponseEntity.badRequest().body(ApiResponse.error(msg));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> generic(Exception ex) {
         log.error("Unhandled exception", ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(error("An unexpected server error occurred. Please try again later."));
-    }
-
-    private static Map<String, Object> error(String message) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("success", false);
-        body.put("error", message);
-        return body;
+                .body(ApiResponse.error("An unexpected server error occurred. Please try again later."));
     }
 }

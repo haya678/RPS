@@ -14,6 +14,8 @@ import com.xanwar.rps.websocket.GameSessionRegistry;
 import org.springframework.stereotype.Service;
 import org.springframework.web.socket.WebSocketSession;
 
+import com.xanwar.rps.util.WebSocketMessages;
+
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -88,18 +90,7 @@ public class GameRoomService {
 
         if (playWithBot) {
             room.tryStartMatch("BOT_BAINING", "The House", "BOT_SESSION");
-            ObjectNode response = objectMapper.createObjectNode();
-            response.put("action", "matchStarted");
-            response.put("roomId", roomId);
-            response.put("player1", room.getPlayer1Name());
-            response.put("player1Id", room.getPlayer1Id());
-            response.put("player2", room.getPlayer2Name());
-            response.put("player2Id", room.getPlayer2Id());
-            response.put("betAmount", room.getBetAmount());
-            response.put("pot", room.getPot());
-            response.put("round", room.getCurrentRound());
-            response.put("winsRequired", room.getWinsRequired());
-            sessionRegistry.sendJson(session, response);
+            sessionRegistry.sendJson(session, buildMatchStartedPayload(room));
             startRoundTimer(room);
         } else {
             ObjectNode response = objectMapper.createObjectNode();
@@ -202,18 +193,7 @@ public class GameRoomService {
 
         sessionRegistry.bindPlayer(session, tornId, username, roomId);
 
-        ObjectNode response = objectMapper.createObjectNode();
-        response.put("action", "matchStarted");
-        response.put("roomId", roomId);
-        response.put("player1", room.getPlayer1Name());
-        response.put("player1Id", room.getPlayer1Id());
-        response.put("player2", room.getPlayer2Name());
-        response.put("player2Id", room.getPlayer2Id());
-        response.put("betAmount", room.getBetAmount());
-        response.put("pot", room.getPot());
-        response.put("round", room.getCurrentRound());
-        response.put("winsRequired", room.getWinsRequired());
-        sessionRegistry.sendToRoom(room, response);
+        sessionRegistry.sendToRoom(room, buildMatchStartedPayload(room));
         broadcastPublicRooms();
         startRoundTimer(room);
     }
@@ -495,23 +475,27 @@ public class GameRoomService {
         return (gameProperties.getBestOfRounds() + 1) / 2;
     }
 
+    private ObjectNode buildMatchStartedPayload(GameRoom room) {
+        ObjectNode response = objectMapper.createObjectNode();
+        response.put("action", "matchStarted");
+        response.put("roomId", room.getRoomId());
+        response.put("player1", room.getPlayer1Name());
+        response.put("player1Id", room.getPlayer1Id());
+        response.put("player2", room.getPlayer2Name());
+        response.put("player2Id", room.getPlayer2Id());
+        response.put("betAmount", room.getBetAmount());
+        response.put("pot", room.getPot());
+        response.put("round", room.getCurrentRound());
+        response.put("winsRequired", room.getWinsRequired());
+        return response;
+    }
+
     private String requiredText(JsonNode json, String field) {
-        JsonNode node = json.path(field);
-        if (node.isMissingNode() || node.isNull()) {
-            throw new IllegalArgumentException("Missing field: " + field);
-        }
-        String value = node.asText().trim();
-        if (value.isEmpty()) {
-            throw new IllegalArgumentException("Missing field: " + field);
-        }
-        return value;
+        return WebSocketMessages.requiredText(json, field);
     }
 
     private void sendError(WebSocketSession session, String message) {
-        ObjectNode node = objectMapper.createObjectNode();
-        node.put("action", "error");
-        node.put("message", message);
-        sessionRegistry.sendJson(session, node);
+        WebSocketMessages.sendError(sessionRegistry, objectMapper, session, message);
     }
 
     private void triggerBotChat(GameRoom room, String p1Choice, String p2Choice, int outcome) {

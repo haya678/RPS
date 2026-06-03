@@ -15,9 +15,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.xanwar.rps.util.ApiResponse;
+
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -53,7 +54,6 @@ public class DepositService {
 
     @Transactional
     public Map<String, Object> verifyDeposit(String userTornId) {
-        Map<String, Object> result = new HashMap<>();
         User user = userService.requireUser(userTornId);
 
         long cutoffEpoch = Instant.now().getEpochSecond()
@@ -66,9 +66,7 @@ public class DepositService {
             data = tornApiClient.fetchHouseActivity();
         } catch (Exception e) {
             log.warn("House activity API failed: {}", e.getMessage(), e);
-            result.put("success", false);
-            result.put("error", "Could not read house Torn events. Check TORN_API_MY_KEY has full access (info, events, log). Error: " + e.getMessage());
-            return result;
+            return ApiResponse.error("Could not read house Torn events. Check TORN_API_MY_KEY has full access (info, events, log). Error: " + e.getMessage());
         }
 
         String requiredMessage = depositProperties.getRequiredMessage();
@@ -85,7 +83,7 @@ public class DepositService {
                 data.path("log"), user, userTornId, cutoffEpoch, requiredMessage, moolaPerXanax, "log");
 
         if (totalMoola == 0) {
-            result.put("success", true);
+            Map<String, Object> result = ApiResponse.success();
             result.put("verified", false);
             StringBuilder msg = new StringBuilder();
             msg.append("No new deposits found for Torn ID ").append(userTornId).append(". ");
@@ -104,7 +102,7 @@ public class DepositService {
         int xanaxCredited = (int) (totalMoola / moolaPerXanax);
         user.setSiteBalance(user.getSiteBalance() + totalMoola);
         userRepository.save(user);
-        result.put("success", true);
+        Map<String, Object> result = ApiResponse.success();
         result.put("verified", true);
         result.put("xanax_amount", xanaxCredited);
         result.put("moola_credited", totalMoola);

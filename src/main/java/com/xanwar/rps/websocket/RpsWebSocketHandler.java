@@ -7,6 +7,7 @@ import com.xanwar.rps.service.GameRoomService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
+import com.xanwar.rps.util.WebSocketMessages;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
 import org.springframework.web.socket.WebSocketSession;
@@ -76,8 +77,6 @@ public class RpsWebSocketHandler extends TextWebSocketHandler {
     }
 
     private void sendError(WebSocketSession session, String error) {
-        sessionRegistry.sendJson(session, objectMapper.createObjectNode()
-                .put("action", "error")
-                .put("message", error));
+        WebSocketMessages.sendError(sessionRegistry, objectMapper, session, error);
     }
 }

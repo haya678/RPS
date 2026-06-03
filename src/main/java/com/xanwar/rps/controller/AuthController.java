@@ -12,6 +12,8 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.xanwar.rps.util.ApiResponse;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,10 +38,8 @@ public class AuthController {
         UserDto user = userService.signup(request.apiKey(), request.pin());
         session.setAttribute(SessionKeys.TORN_ID, user.tornId());
 
-        Map<String, Object> body = new HashMap<>();
-        body.put("success", true);
+        Map<String, Object> body = ApiResponse.success("message", "Signup successful.");
         body.put("user", UserResponse.from(user, user.tornId().equals(houseAccountService.getRecipientId())));
-        body.put("message", "Signup successful.");
         return ResponseEntity.ok(body);
     }
 
@@ -51,10 +51,8 @@ public class AuthController {
         UserDto user = userService.login(request.apiKey(), request.pin());
         session.setAttribute(SessionKeys.TORN_ID, user.tornId());
 
-        Map<String, Object> body = new HashMap<>();
-        body.put("success", true);
+        Map<String, Object> body = ApiResponse.success("message", "Login successful.");
         body.put("user", UserResponse.from(user, user.tornId().equals(houseAccountService.getRecipientId())));
-        body.put("message", "Login successful.");
         return ResponseEntity.ok(body);
     }
 
@@ -70,16 +68,15 @@ public class AuthController {
     public ResponseEntity<Map<String, Object>> me(HttpSession session) {
         Object tornId = session.getAttribute(SessionKeys.TORN_ID);
         if (!(tornId instanceof String id) || id.isBlank()) {
-            return ResponseEntity.status(401).body(Map.of("success", false, "error", "Not logged in."));
+            return ResponseEntity.status(401).body(ApiResponse.error("Not logged in."));
         }
         return userService.findByTornId(id)
                 .map(user -> {
-                    Map<String, Object> body = new HashMap<>();
-                    body.put("success", true);
+                    Map<String, Object> body = ApiResponse.success();
                     body.put("user", UserResponse.from(user, user.tornId().equals(houseAccountService.getRecipientId())));
                     return ResponseEntity.ok(body);
                 })
-                .orElse(ResponseEntity.status(404).body(Map.of("success", false, "error", "User not found.")));
+                .orElse(ResponseEntity.status(404).body(ApiResponse.error("User not found.")));
     }
 
     @DeleteMapping("/auth")
@@ -114,23 +111,7 @@ public class AuthController {
             return ResponseEntity.ok(body);
         }
         return userService.findByTornId(tornId)
-                .map(user -> {
-                    Map<String, Object> body = new HashMap<>();
-                    body.put("torn_id", user.tornId());
-                    body.put("username", user.username());
-                    body.put("site_balance", user.siteBalance());
-                    body.put("profile_image_url", user.profileImageUrl());
-                    body.put("total_moola_betted", user.totalMoolaBetted());
-                    body.put("total_moola_won", user.totalMoolaWon());
-                    body.put("total_moola_lost", user.totalMoolaLost());
-                    body.put("total_matches_played", user.totalMatchesPlayed());
-                    body.put("total_matches_won", user.totalMatchesWon());
-                    double winRate = user.totalMatchesPlayed() == 0 ? 0.0
-                            : (user.totalMatchesWon() * 100.0) / user.totalMatchesPlayed();
-                    body.put("win_rate", winRate);
-                    body.put("net_profit_loss", user.totalMoolaWon() - user.totalMoolaLost());
-                    return ResponseEntity.ok(body);
-                })
+                .map(user -> ResponseEntity.ok(UserResponse.toProfileMap(user)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -149,10 +130,23 @@ public class AuthController {
             long netProfitLoss,
             boolean isAdmin
     ) {
+        static Map<String, Object> toProfileMap(UserDto dto) {
+            Map<String, Object> body = new HashMap<>();
+            body.put("torn_id", dto.tornId());
+            body.put("username", dto.username());
+            body.put("site_balance", dto.siteBalance());
+            body.put("profile_image_url", dto.profileImageUrl());
+            body.put("total_moola_betted", dto.totalMoolaBetted());
+            body.put("total_moola_won", dto.totalMoolaWon());
+            body.put("total_moola_lost", dto.totalMoolaLost());
+            body.put("total_matches_played", dto.totalMatchesPlayed());
+            body.put("total_matches_won", dto.totalMatchesWon());
+            body.put("win_rate", dto.winRate());
+            body.put("net_profit_loss", dto.netProfitLoss());
+            return body;
+        }
+
         static UserResponse from(UserDto dto, boolean isAdmin) {
-            double winRate = dto.totalMatchesPlayed() == 0 ? 0.0
-                    : (dto.totalMatchesWon() * 100.0) / dto.totalMatchesPlayed();
-            long netProfitLoss = dto.totalMoolaWon() - dto.totalMoolaLost();
             return new UserResponse(
                     dto.tornId(),
                     dto.username(),
@@ -163,8 +157,8 @@ public class AuthController {
                     dto.totalMoolaLost(),
                     dto.totalMatchesPlayed(),
                     dto.totalMatchesWon(),
-                    winRate,
-                    netProfitLoss,
+                    dto.winRate(),
+                    dto.netProfitLoss(),
                     isAdmin
             );
         }

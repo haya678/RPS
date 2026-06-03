@@ -8,8 +8,9 @@ import com.xanwar.rps.repository.WithdrawalRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.xanwar.rps.util.ApiResponse;
+
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -35,20 +36,15 @@ public class WithdrawalService {
 
     @Transactional
     public Map<String, Object> requestWithdrawal(String tornId, long moolaAmount) {
-        Map<String, Object> result = new HashMap<>();
         int step = gameProperties.getMoolaPerXanax();
 
         if (moolaAmount <= 0 || moolaAmount % step != 0) {
-            result.put("success", false);
-            result.put("error", "Amount must be a positive multiple of " + step + ".");
-            return result;
+            return ApiResponse.error("Amount must be a positive multiple of " + step + ".");
         }
 
         User user = userService.requireUser(tornId);
         if (user.getSiteBalance() < moolaAmount) {
-            result.put("success", false);
-            result.put("error", "Insufficient balance.");
-            return result;
+            return ApiResponse.error("Insufficient balance.");
         }
 
         user.setSiteBalance(user.getSiteBalance() - moolaAmount);
@@ -59,9 +55,9 @@ public class WithdrawalService {
         withdrawal.setStatus(Withdrawal.STATUS_PENDING);
         withdrawalRepository.save(withdrawal);
 
-        result.put("success", true);
-        result.put("message", "Withdrawal request submitted: " + moolaAmount
-                + " Moola (" + xanaxAmount + " Xanax). Pending admin payout.");
+        Map<String, Object> result = ApiResponse.success(
+                "message", "Withdrawal request submitted: " + moolaAmount
+                        + " Moola (" + xanaxAmount + " Xanax). Pending admin payout.");
         result.put("site_balance", user.getSiteBalance());
         result.put("withdrawal_id", withdrawal.getId());
         return result;
@@ -78,27 +74,22 @@ public class WithdrawalService {
 
     @Transactional
     public Map<String, Object> complete(Long withdrawalId, String adminKey) {
-        Map<String, Object> result = new HashMap<>();
         assertAdmin(adminKey);
 
         Withdrawal withdrawal = withdrawalRepository.findById(withdrawalId).orElse(null);
         if (withdrawal == null) {
-            result.put("success", false);
-            result.put("error", "Withdrawal not found.");
-            return result;
+            return ApiResponse.error("Withdrawal not found.");
         }
         if (!Withdrawal.STATUS_PENDING.equals(withdrawal.getStatus())) {
-            result.put("success", false);
-            result.put("error", "Withdrawal already processed.");
-            return result;
+            return ApiResponse.error("Withdrawal already processed.");
         }
 
         withdrawal.setStatus(Withdrawal.STATUS_COMPLETED);
         withdrawal.setCompletedAt(Instant.now());
         withdrawalRepository.save(withdrawal);
 
-        result.put("success", true);
-        result.put("message", "Withdrawal #" + withdrawalId + " marked as completed.");
+        Map<String, Object> result = ApiResponse.success(
+                "message", "Withdrawal #" + withdrawalId + " marked as completed.");
         result.put("withdrawal", WithdrawalDto.from(withdrawal));
         return result;
     }

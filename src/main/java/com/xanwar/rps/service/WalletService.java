@@ -65,7 +65,7 @@ public class WalletService {
         if (user == null) {
             return false;
         }
-        user.setSiteBalance((user.getSiteBalance() == null ? 0L : user.getSiteBalance()) + amount);
+        user.setSiteBalance(user.safeBalance() + amount);
         userRepository.save(user);
         return true;
     }
