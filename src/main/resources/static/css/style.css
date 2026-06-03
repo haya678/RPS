@@ -2350,7 +2350,8 @@ body.match-only .game-main {
   display: flex;
   align-items: center;
   justify-content: center;
-  background:
+  background-color: #FAF8F5;
+  background-image:
     linear-gradient(90deg, transparent 79px, #ffa0a0 79px, #ffa0a0 81px, transparent 81px),
     repeating-linear-gradient(
       to bottom,
@@ -2395,7 +2396,9 @@ body.match-only .game-main {
 
 #return-match-modal {
   z-index: 300;
-  background:
+  backdrop-filter: none;
+  background-color: #FAF8F5;
+  background-image:
     linear-gradient(90deg, transparent 79px, #ffa0a0 79px, #ffa0a0 81px, transparent 81px),
     repeating-linear-gradient(
       to bottom,

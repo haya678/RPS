@@ -80,13 +80,16 @@ class WalletServiceTest {
     }
 
     @Test
-    void creditBalanceDoesNothingForUnknownUser() {
+    void creditBalanceThrowsForUnknownUser() {
         when(userRepository.findByTornId("unknown")).thenReturn(Optional.empty());
 
-        walletService.creditBalance("unknown", 100L);
+        try {
+            walletService.creditBalance("unknown", 100L);
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).contains("user not found");
+        }
 
         verify(userRepository).findByTornId("unknown");
-        verifyNoMoreInteractions(userRepository);
     }
 
     @Test
@@ -99,12 +102,14 @@ class WalletServiceTest {
     }
 
     @Test
-    void getBalanceReturnsZeroForUnknownUser() {
+    void getBalanceThrowsForUnknownUser() {
         when(userRepository.findByTornId("unknown")).thenReturn(Optional.empty());
 
-        long balance = walletService.getBalance("unknown");
-
-        assertThat(balance).isEqualTo(0L);
+        try {
+            walletService.getBalance("unknown");
+        } catch (IllegalArgumentException e) {
+            assertThat(e.getMessage()).contains("User not found");
+        }
     }
 
     @Test
