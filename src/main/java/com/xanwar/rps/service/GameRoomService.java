@@ -232,6 +232,53 @@ public class GameRoomService {
         cleanupRoom(room);
     }
 
+    public void forfeitMatch(WebSocketSession session, JsonNode json) {
+        String tornId = requiredText(json, "tornId");
+        String roomId = requiredText(json, "roomId");
+
+        GameRoom room = rooms.get(roomId);
+        if (room == null) {
+            sendError(session, "Room not found.");
+            return;
+        }
+
+        synchronized (room) {
+            if (room.getStatus() != RoomStatus.IN_PROGRESS) {
+                sendError(session, "No match in progress to forfeit.");
+                return;
+            }
+            if (!room.involvesPlayer(tornId)) {
+                sendError(session, "You are not a participant in this match.");
+                return;
+            }
+        }
+
+        // Determine scores to make the other player win
+        int winsRequired = room.getWinsRequired();
+        int p1Wins, p2Wins;
+        if (tornId.equals(room.getPlayer1Id())) {
+            p1Wins = room.getPlayer1Wins();
+            p2Wins = winsRequired; // Player 2 wins
+        } else {
+            p1Wins = winsRequired; // Player 1 wins
+            p2Wins = room.getPlayer2Wins();
+        }
+
+        ObjectNode forfeitMsg = objectMapper.createObjectNode();
+        forfeitMsg.put("action", "chatMessage");
+        forfeitMsg.put("scope", "room");
+        forfeitMsg.put("roomId", room.getRoomId());
+        forfeitMsg.put("tornId", "SYSTEM");
+        forfeitMsg.put("username", "Match Info");
+        String forfeiter = tornId.equals(room.getPlayer1Id()) ? room.getPlayer1Name() : room.getPlayer2Name();
+        forfeitMsg.put("message", forfeiter + " has forfeited the match.");
+        forfeitMsg.put("timestamp", System.currentTimeMillis());
+        sessionRegistry.sendToRoom(room, forfeitMsg);
+
+        cancelRoundTimer(room.getRoomId());
+        finishMatch(room, p1Wins, p2Wins);
+    }
+
     public void submitChoice(WebSocketSession session, JsonNode json) {
         String tornId = requiredText(json, "tornId");
         String roomId = requiredText(json, "roomId");
@@ -487,6 +534,9 @@ public class GameRoomService {
         response.put("pot", room.getPot());
         response.put("round", room.getCurrentRound());
         response.put("winsRequired", room.getWinsRequired());
+        if (room.getRoundTimerExpiresAt() != null) {
+            response.put("expiresAt", room.getRoundTimerExpiresAt());
+        }
         return response;
     }
 
@@ -561,9 +611,17 @@ public class GameRoomService {
         
         cancelRoundTimer(roomId);
         
+        long expiresAt = System.currentTimeMillis() + 60000;
+        room.setRoundTimerExpiresAt(expiresAt);
+        
+        ObjectNode timerMsg = objectMapper.createObjectNode();
+        timerMsg.put("action", "roundTimerStart");
+        timerMsg.put("expiresAt", expiresAt);
+        sessionRegistry.sendToRoom(room, timerMsg);
+        
         java.util.concurrent.ScheduledFuture<?> future = scheduler.schedule(() -> {
             handleRoundTimeout(roomId, roundNumber);
-        }, 120, java.util.concurrent.TimeUnit.SECONDS);
+        }, 60, java.util.concurrent.TimeUnit.SECONDS);
         
         roomTimers.put(roomId, future);
     }
@@ -572,6 +630,13 @@ public class GameRoomService {
         java.util.concurrent.ScheduledFuture<?> future = roomTimers.remove(roomId);
         if (future != null) {
             future.cancel(false);
+        }
+        GameRoom room = rooms.get(roomId);
+        if (room != null) {
+            room.setRoundTimerExpiresAt(null);
+            ObjectNode cancelMsg = objectMapper.createObjectNode();
+            cancelMsg.put("action", "roundTimerCancel");
+            sessionRegistry.sendToRoom(room, cancelMsg);
         }
     }
 
@@ -650,6 +715,9 @@ public class GameRoomService {
             response.put("pot", activeRoom.getPot());
             response.put("round", activeRoom.getCurrentRound());
             response.put("winsRequired", activeRoom.getWinsRequired());
+            if (activeRoom.getRoundTimerExpiresAt() != null) {
+                response.put("timerExpiresAt", activeRoom.getRoundTimerExpiresAt());
+            }
             
             boolean alreadySubmitted = false;
             if (tornId.equals(activeRoom.getPlayer1Id())) {

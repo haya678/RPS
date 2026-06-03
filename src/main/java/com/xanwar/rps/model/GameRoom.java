@@ -24,6 +24,7 @@ public class GameRoom {
     private RoomStatus status = RoomStatus.WAITING;
     private final RoomVisibility visibility;
     private final long createdAtEpochMs;
+    private Long roundTimerExpiresAt;
 
     public GameRoom(
             String roomId,
@@ -203,5 +204,13 @@ public class GameRoom {
 
     public long getCreatedAtEpochMs() {
         return createdAtEpochMs;
+    }
+
+    public Long getRoundTimerExpiresAt() {
+        return roundTimerExpiresAt;
+    }
+
+    public void setRoundTimerExpiresAt(Long roundTimerExpiresAt) {
+        this.roundTimerExpiresAt = roundTimerExpiresAt;
     }
 }

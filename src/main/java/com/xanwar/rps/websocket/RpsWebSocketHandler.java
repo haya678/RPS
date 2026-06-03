@@ -62,6 +62,7 @@ public class RpsWebSocketHandler extends TextWebSocketHandler {
                 case "createRoom" -> gameRoomService.createRoom(session, json);
                 case "joinRoom" -> gameRoomService.joinRoom(session, json);
                 case "cancelRoom" -> gameRoomService.cancelRoom(session, json);
+                case "forfeitMatch" -> gameRoomService.forfeitMatch(session, json);
                 case "submitChoice" -> gameRoomService.submitChoice(session, json);
                 case "listPublicRooms" -> gameRoomService.listPublicRooms(session);
                 case "globalChat" -> chatService.sendGlobalChat(session, json);
