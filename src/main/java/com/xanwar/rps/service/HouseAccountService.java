@@ -59,7 +59,7 @@ public class HouseAccountService {
             }
             log.info("Deposit recipient loaded: {} [{}]", recipientName, recipientId);
         } catch (Exception e) {
-            log.error("Could not load house account from Torn API: {}", e.getMessage());
+            log.error("Could not load house account from Torn API: {}", e.getMessage(), e);
         }
     }
 
