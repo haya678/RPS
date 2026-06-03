@@ -1211,6 +1211,7 @@ refreshLeaderboardBtn.addEventListener('click', () => loadLeaderboard());
 profileButton?.addEventListener('click', (e) => {
   if (!currentUser) return;
   e.preventDefault();
+  e.stopPropagation();
   openProfileModal(currentUser.username, currentUser);
 });
 
@@ -1234,9 +1235,17 @@ document.addEventListener('mouseout', (e) => {
   }
 });
 
-closeProfileModalBtn?.addEventListener('click', () => profileModal?.classList.add('hidden'));
-profileModal?.addEventListener('click', (e) => {
-  if (e.target === profileModal) profileModal.classList.add('hidden');
+closeProfileModalBtn?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  profileModal?.classList.add('hidden');
+});
+
+document.addEventListener('click', (e) => {
+  if (profileModal && !profileModal.classList.contains('hidden')) {
+    if (!profileModal.contains(e.target) && !profileButton?.contains(e.target)) {
+      profileModal.classList.add('hidden');
+    }
+  }
 });
 
 function closeDepositVerifiedModal() {
@@ -1432,6 +1441,10 @@ function showBotProfile() {
 }
 
 function openProfileModal(username, data) {
+  if (profileModal && !profileModal.classList.contains('hidden')) {
+    profileModal.classList.add('hidden');
+    return;
+  }
   const winRate = data.total_matches_played === 0 ? 0
     : (data.total_matches_won * 100.0) / data.total_matches_played;
   const won = asNumber(data.total_moola_won);
@@ -1694,6 +1707,7 @@ async function refreshBalance() {
 // ── INIT ───────────────────────────────────────────────
 function setAutoLoginLoading(loading) {
   autoLoginLoading?.classList.toggle('hidden', !loading);
+  if (loading) authSection?.classList.add('hidden');
 }
 
 (async () => {
@@ -1704,8 +1718,12 @@ function setAutoLoginLoading(loading) {
     document.body.classList.add('match-only');
   }
 
-  try {
+  const hasSavedSession = !!localStorage.getItem('tornId');
+  if (hasSavedSession) {
     setAutoLoginLoading(true);
+  }
+
+  try {
     const res = await fetch('/api/auth/me', { credentials: 'same-origin' });
     if (res.ok) {
       const data = await res.json();
@@ -1718,7 +1736,7 @@ function setAutoLoginLoading(loading) {
     }
   } catch (_) {}
 
-
   setAutoLoginLoading(false);
+  authSection?.classList.remove('hidden');
   mountGameUiDecorations();
 })();
