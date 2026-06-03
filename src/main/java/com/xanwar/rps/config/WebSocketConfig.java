@@ -21,6 +21,11 @@ public class WebSocketConfig implements WebSocketConfigurer {
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
         registry.addHandler(rpsWebSocketHandler, gameProperties.getWebsocket().getPath())
-                .setAllowedOrigins("*");
+                .setAllowedOriginPatterns(
+                        "https://*.onrender.com",
+                        "https://*.torn.com",
+                        "http://localhost:[*]",
+                        "http://127.0.0.1:[*]"
+                );
     }
 }

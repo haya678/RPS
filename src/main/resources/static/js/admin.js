@@ -1,4 +1,9 @@
 const $ = (sel) => document.querySelector(sel);
+function esc(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
 
 let adminKey = null;
 let allUsers = [];
@@ -49,10 +54,12 @@ userSearch.addEventListener('input', () => {
 
 async function loadWithdrawals() {
   try {
-    const res = await fetch(`/api/admin/withdrawals?adminKey=${encodeURIComponent(adminKey)}`);
+    const res = await fetch('/api/admin/withdrawals', {
+      headers: { 'X-Admin-Key': adminKey }
+    });
     const data = await res.json();
     if (data.error) {
-      withdrawalsList.innerHTML = `<p class="error-msg">${data.error}</p>`;
+      withdrawalsList.innerHTML = `<p class="error-msg">${esc(data.error)}</p>`;
       return;
     }
 
@@ -65,13 +72,13 @@ async function loadWithdrawals() {
     withdrawalsList.innerHTML = pending.map(w => `
       <div class="withdrawal-row">
         <div class="withdrawal-info">
-          <span class="user">${w.username || w.torn_id}</span>
+          <span class="user">${esc(w.username || w.torn_id)}</span>
           &mdash;
-          <span class="amount">${w.moola_amount} Moola (${w.xanax_amount} Xanax)</span>
-          &mdash; ${w.status}
-          <br><small>Torn ID: ${w.torn_id} | ID: ${w.id}</small>
+          <span class="amount">${Number(w.moola_amount)} Moola (${Number(w.xanax_amount)} Xanax)</span>
+          &mdash; ${esc(w.status)}
+          <br><small>Torn ID: ${esc(w.torn_id)} | ID: ${Number(w.id)}</small>
         </div>
-        <button class="btn-accent" onclick="completeWithdrawal(${w.id})">Mark Completed</button>
+        <button class="btn-accent" onclick="completeWithdrawal(${Number(w.id)})">Mark Completed</button>
       </div>
     `).join('');
   } catch (err) {
@@ -99,10 +106,12 @@ async function completeWithdrawal(id) {
 
 async function loadUsers() {
   try {
-    const res = await fetch(`/api/admin/users?adminKey=${encodeURIComponent(adminKey)}`);
+    const res = await fetch('/api/admin/users', {
+      headers: { 'X-Admin-Key': adminKey }
+    });
     const data = await res.json();
     if (data.error) {
-      usersList.innerHTML = `<p class="error-msg">${data.error}</p>`;
+      usersList.innerHTML = `<p class="error-msg">${esc(data.error)}</p>`;
       return;
     }
     allUsers = data.users || [];
@@ -125,12 +134,12 @@ function renderUsers(query) {
   usersList.innerHTML = filtered.map(u => `
     <div class="withdrawal-row">
       <div class="withdrawal-info">
-        <span class="user">${u.username}</span>
+        <span class="user">${esc(u.username)}</span>
         &mdash;
-        <span class="amount">${u.siteBalance} Moola</span>
-        <br><small>Torn ID: ${u.tornId} | Matches: ${u.totalMatchesPlayed} | Won: ${u.totalMatchesWon}</small>
+        <span class="amount">${Number(u.siteBalance)} Moola</span>
+        <br><small>Torn ID: ${esc(u.tornId)} | Matches: ${Number(u.totalMatchesPlayed)} | Won: ${Number(u.totalMatchesWon)}</small>
       </div>
-      <button class="btn-accent btn-small" onclick="prefillCredit('${u.username.replace(/'/g, "\\'")}')">Send Moola</button>
+      <button class="btn-accent btn-small" onclick="prefillCredit('${esc(u.username).replace(/'/g, "\\'")}')">Send Moola</button>
     </div>
   `).join('');
 }
