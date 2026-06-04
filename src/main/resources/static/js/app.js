@@ -289,38 +289,38 @@ function returnToHome() {
   showMsg(lobbyMessage, 'Returned to lobby.', false);
 }
 
-function prepareMatchTab() {
+function prepareMatchTab(roomId) {
   if (pendingMatchWindow && !pendingMatchWindow.closed) {
     try {
       pendingMatchWindow.focus();
+      if (roomId) routePendingMatchTab(roomId);
+      openMatchInNewTab = true;
+      return true;
     } catch (e) {}
-    openMatchInNewTab = true;
-    return true;
   }
+  
   lastTabOpenAttempt = Date.now();
-  lastRoutedRoomId = null;
+  lastRoutedRoomId = roomId || null;
+  
+  const targetUrl = roomId 
+    ? `${location.origin}${location.pathname}?match=${encodeURIComponent(roomId)}`
+    : `${location.origin}${location.pathname}?match=pending`;
+
   try {
-    const loadingUrl = `${location.origin}${location.pathname}?match=pending`;
-    pendingMatchWindow = window.open(loadingUrl, '_blank');
+    // Use a specific window name to help some browsers associate the popup with the interaction
+    pendingMatchWindow = window.open(targetUrl, 'rps_match_arena');
     if (!pendingMatchWindow || pendingMatchWindow.closed || typeof pendingMatchWindow.closed === 'undefined') {
       pendingMatchWindow = null;
       openMatchInNewTab = false;
-      showMsg(lobbyMessage, 'Popup blocked. The room will continue in this tab.', true);
+      showMsg(lobbyMessage, 'Popup blocked. The match will open in this tab.', true);
       return false;
     }
-    // Extra check for some browsers that return a dummy window object
-    try {
-      if (pendingMatchWindow.innerWidth === 0) {
-        // This might be too early to check, but let's keep it as a hint
-      }
-    } catch (e) {}
-
     openMatchInNewTab = true;
     return true;
   } catch (error) {
     pendingMatchWindow = null;
     openMatchInNewTab = false;
-    showMsg(lobbyMessage, 'Popup blocked. The room will continue in this tab.', true);
+    showMsg(lobbyMessage, 'Popup blocked. The match will open in this tab.', true);
     return false;
   }
 }
@@ -333,15 +333,20 @@ function routePendingMatchTab(roomId) {
   }
   try {
     const targetUrl = `${location.origin}${location.pathname}?match=${encodeURIComponent(roomId)}`;
+    // If already on the right URL, just focus
+    if (pendingMatchWindow.location.href.includes(`?match=${roomId}`)) {
+       try { pendingMatchWindow.focus(); } catch(e) {}
+       lastRoutedRoomId = roomId;
+       return true;
+    }
     pendingMatchWindow.location.href = targetUrl;
-    pendingMatchWindow.focus();
-    // We DON'T nullify pendingMatchWindow here anymore so matchStarted can verify it's still open
+    try { pendingMatchWindow.focus(); } catch(e) {}
     lastRoutedRoomId = roomId;
     return true;
   } catch (e) {
-    pendingMatchWindow = null;
-    openMatchInNewTab = false;
-    return false;
+    // Cross-origin or other error
+    lastRoutedRoomId = roomId; // Still mark as routed if we tried
+    return true; // Assume it's okay or will be handled by the tab itself
   }
 }
 
@@ -1108,6 +1113,11 @@ function handleWsMessage(data) {
       showMsg(lobbyMessage, data.message, true);
       enableChoices(true);
       clearPendingMatchTab();
+      // If the error is about an active room/match, show the return modal
+      if (data.message && data.message.toLowerCase().includes('already have an active')) {
+         const active = getActiveMatch();
+         if (active?.roomId) showReturnMatchModal(active.roomId);
+      }
       break;
   }
 }
@@ -1146,7 +1156,6 @@ function escapeHtml(text) {
 }
 
 function joinPublicRoom(roomId) {
-  if (checkActiveMatchBeforeAction()) return;
   prepareMatchTab();
   sendWs({
     action: 'joinRoom',
@@ -1307,10 +1316,6 @@ function checkActiveMatchBeforeAction() {
 createRoomBtn.addEventListener('click', () => {
   const tabOpenSuccess = prepareMatchTab();
   
-  if (checkActiveMatchBeforeAction()) {
-    if (tabOpenSuccess) clearPendingMatchTab();
-    return;
-  }
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     showMsg(lobbyMessage, 'Connecting... wait a moment and try again.', true);
     if (tabOpenSuccess) clearPendingMatchTab();
@@ -1348,10 +1353,6 @@ createRoomBtn.addEventListener('click', () => {
 playBotBtn?.addEventListener('click', () => {
   const tabOpenSuccess = prepareMatchTab();
 
-  if (checkActiveMatchBeforeAction()) {
-    if (tabOpenSuccess) clearPendingMatchTab();
-    return;
-  }
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     showMsg(lobbyMessage, 'Connecting... wait a moment and try again.', true);
     if (tabOpenSuccess) clearPendingMatchTab();
@@ -1412,10 +1413,6 @@ copyRoomCodeBtn?.addEventListener('click', async () => {
 joinRoomBtn.addEventListener('click', () => {
   const tabOpenSuccess = prepareMatchTab();
 
-  if (checkActiveMatchBeforeAction()) {
-    if (tabOpenSuccess) clearPendingMatchTab();
-    return;
-  }
   if (waitingRoomPanel && !waitingRoomPanel.classList.contains('hidden')) {
     showMsg(lobbyMessage, 'Cancel your open room before joining another.', true);
     if (tabOpenSuccess) clearPendingMatchTab();
@@ -2008,6 +2005,7 @@ function setAutoLoginLoading(loading) {
         setLoggedIn(data.user);
         connectWS();
         setAutoLoginLoading(false);
+        checkActiveMatchBeforeAction();
         return;
       }
     }
@@ -2034,6 +2032,7 @@ function setAutoLoginLoading(loading) {
           setLoggedIn(data.user);
           connectWS();
           setAutoLoginLoading(false);
+          checkActiveMatchBeforeAction();
           return;
         }
       }
