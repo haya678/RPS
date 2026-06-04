@@ -111,51 +111,9 @@ const matchInfoMessage = $('#match-info-message');
 const matchTabWaiting = $('#match-tab-waiting');
 const matchTabWaitingRoom = $('#match-tab-waiting-room');
 
-// ── RETURN-TO-MATCH MODAL ──────────────────────────────
-function setActiveMatch(roomId) {
-  localStorage.setItem('activeMatch', JSON.stringify({ roomId }));
-}
-function clearActiveMatch() {
-  localStorage.removeItem('activeMatch');
-}
-function getActiveMatch() {
-  try {
-    return JSON.parse(localStorage.getItem('activeMatch') || 'null');
-  } catch { return null; }
-}
-
-const returnMatchModal = $('#return-match-modal');
-const reopenMatchTabBtn = $('#reopen-match-tab-btn');
-const forfeitMatchBtn = $('#forfeit-match-btn');
-
-function showReturnMatchModal(roomId) {
-  if (matchOnlyMode) return;
-  returnMatchModal?.classList.remove('hidden');
-}
-
-function hideReturnMatchModal() {
-  returnMatchModal?.classList.add('hidden');
-}
-
-reopenMatchTabBtn?.addEventListener('click', () => {
-  const active = getActiveMatch();
-  if (!active?.roomId) return;
-  window.open(`${location.origin}${location.pathname}?match=${encodeURIComponent(active.roomId)}`, '_blank');
-});
-
-forfeitMatchBtn?.addEventListener('click', () => {
-  const active = getActiveMatch();
-  if (!active?.roomId) return;
-  sendWs({ action: 'forfeitMatch', tornId: currentUser?.torn_id, roomId: active.roomId });
-});
-
 // ── WAITING OVERLAY ────────────────────────────────────
 function showMatchTabWaiting(roomId) {
   if (!matchOnlyMode) return;
-  const activeMatch = getActiveMatch();
-  if (activeMatch && activeMatch.roomId === roomId) {
-    return;
-  }
   if (matchTabWaitingRoom) matchTabWaitingRoom.textContent = roomId || '';
   matchTabWaiting?.classList.remove('hidden');
   enableChoices(false);
@@ -276,10 +234,6 @@ let lastRoutedRoomId = null;
 let lastTabOpenAttempt = 0;
 
 function returnToHome() {
-  // If the match that just ended/exited was a bot match, clear the tracking
-  // (match is over — user clicked "Return home" from the result card)
-  clearActiveMatch();
-  hideReturnMatchModal();
   resetMatchUI();
   if (matchOnlyMode) {
     window.location.href = `${location.origin}${location.pathname}`;
@@ -602,8 +556,6 @@ function setLoggedOut() {
   if (profileModal) profileModal.classList.add('hidden');
   closeDepositVerifiedModal();
   hideWaitingRoom();
-  clearActiveMatch();
-  hideReturnMatchModal();
   syncNotebookDoodles();
 }
 
@@ -796,8 +748,6 @@ function handleWsMessage(data) {
 
     case 'matchStarted':
       hideMatchTabWaiting();
-      // Track all matches so the return-to-match modal can fire if the tab is closed
-      setActiveMatch(data.roomId);
       
       let tabRouted = false;
       if (openMatchInNewTab && pendingMatchWindow) {
@@ -809,34 +759,12 @@ function handleWsMessage(data) {
           openMatchInNewTab = false;
         }
       } else if (data.roomId === lastRoutedRoomId) {
-        // Already routed by roomCreated. Verify if the window is still alive if possible.
-        // If we don't have the window reference anymore, we assume it's open unless proven otherwise.
         tabRouted = true;
       }
 
       // If we are on the homepage (lobby)
       if (!matchOnlyMode) {
         hideWaitingRoom();
-        const isHouseMatch = data.player2Id === 'BOT_BAINING';
-        
-        // Requirement 2: show return modal for House matches if we routed a tab OR if we didn't open one
-        // but we want to enforce the new tab design. 
-        // HOWEVER, if the tab failed to open, we should probably just let them play here.
-        if (tabRouted) {
-          showReturnMatchModal(data.roomId);
-          return;
-        }
-        
-        // Fallback: If no tab was opened/routed, and it's not a house match, just show the arena.
-        // If it IS a house match, we still prefer the new tab, but if it failed, we show arena.
-        if (!tabRouted && (Date.now() - lastTabOpenAttempt < 5000)) {
-           // We just tried to open a tab and it failed or was blocked. 
-           // Proceed to show arena in THIS tab.
-        } else if (!tabRouted && isHouseMatch) {
-           // If it's a house match and we didn't just try to open a tab (e.g. resumed), show modal.
-           showReturnMatchModal(data.roomId);
-           return;
-        }
       }
 
       hideWaitingRoom();
@@ -907,16 +835,6 @@ function handleWsMessage(data) {
         }
       }
       
-      // Track the match
-      setActiveMatch(data.roomId);
-      if (!matchOnlyMode) {
-        const isHouseMatchResume = data.player2Id === 'BOT_BAINING';
-        // Requirement 2: only show modal for House matches
-        if (isHouseMatchResume) {
-          showReturnMatchModal(data.roomId);
-          break;
-        }
-      }
       hideWaitingRoom();
       updateMatchRoomId(data.roomId);
       currentRoomId = data.roomId;
@@ -1069,11 +987,6 @@ function handleWsMessage(data) {
     }
 
     case 'matchEnd':
-      // Clear return-to-match modal state if this was an active match
-      if (getActiveMatch()?.roomId === data.roomId) {
-        clearActiveMatch();
-        hideReturnMatchModal();
-      }
       pendingMatchEnd = data;
       if (!choiceReveal.classList.contains('hidden')) {
         break;
@@ -1092,11 +1005,6 @@ function handleWsMessage(data) {
     case 'roomCancelled':
       hideWaitingRoom();
       hideMatchTabWaiting();
-      // Clear return-to-match modal state if this was an active match
-      if (getActiveMatch()?.roomId === data.roomId) {
-        clearActiveMatch();
-        hideReturnMatchModal();
-      }
       showMsg(lobbyMessage, data.message || 'Room closed.', false);
       currentRoomId = null;
       gameSectionPanel.classList.add('hidden');
@@ -1113,11 +1021,6 @@ function handleWsMessage(data) {
       showMsg(lobbyMessage, data.message, true);
       enableChoices(true);
       clearPendingMatchTab();
-      // If the error is about an active room/match, show the return modal
-      if (data.message && data.message.toLowerCase().includes('already have an active')) {
-         const active = getActiveMatch();
-         if (active?.roomId) showReturnMatchModal(active.roomId);
-      }
       break;
   }
 }
@@ -1303,16 +1206,6 @@ withdrawBtn.addEventListener('click', async () => {
 });
 
 // ── ROOMS ──────────────────────────────────────────────
-function checkActiveMatchBeforeAction() {
-  const active = getActiveMatch();
-  if (active?.roomId) {
-    showReturnMatchModal(active.roomId);
-    showMsg(lobbyMessage, 'Finish your current match first!', true);
-    return true;
-  }
-  return false;
-}
-
 createRoomBtn.addEventListener('click', () => {
   const tabOpenSuccess = prepareMatchTab();
   
@@ -2005,7 +1898,6 @@ function setAutoLoginLoading(loading) {
         setLoggedIn(data.user);
         connectWS();
         setAutoLoginLoading(false);
-        checkActiveMatchBeforeAction();
         return;
       }
     }
@@ -2032,7 +1924,6 @@ function setAutoLoginLoading(loading) {
           setLoggedIn(data.user);
           connectWS();
           setAutoLoginLoading(false);
-          checkActiveMatchBeforeAction();
           return;
         }
       }
