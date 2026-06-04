@@ -294,20 +294,27 @@ function prepareMatchTab() {
     try {
       pendingMatchWindow.focus();
     } catch (e) {}
+    openMatchInNewTab = true;
     return true;
   }
   lastTabOpenAttempt = Date.now();
   lastRoutedRoomId = null;
   try {
-    // Open the lobby URL with a 'pending' parameter directly
     const loadingUrl = `${location.origin}${location.pathname}?match=pending`;
     pendingMatchWindow = window.open(loadingUrl, '_blank');
-    if (!pendingMatchWindow || pendingMatchWindow.closed) {
+    if (!pendingMatchWindow || pendingMatchWindow.closed || typeof pendingMatchWindow.closed === 'undefined') {
       pendingMatchWindow = null;
       openMatchInNewTab = false;
       showMsg(lobbyMessage, 'Popup blocked. The room will continue in this tab.', true);
       return false;
     }
+    // Extra check for some browsers that return a dummy window object
+    try {
+      if (pendingMatchWindow.innerWidth === 0) {
+        // This might be too early to check, but let's keep it as a hint
+      }
+    } catch (e) {}
+
     openMatchInNewTab = true;
     return true;
   } catch (error) {
@@ -326,11 +333,9 @@ function routePendingMatchTab(roomId) {
   }
   try {
     const targetUrl = `${location.origin}${location.pathname}?match=${encodeURIComponent(roomId)}`;
-    // Use href for maximum compatibility during routing
     pendingMatchWindow.location.href = targetUrl;
     pendingMatchWindow.focus();
-    pendingMatchWindow = null;
-    openMatchInNewTab = false;
+    // We DON'T nullify pendingMatchWindow here anymore so matchStarted can verify it's still open
     lastRoutedRoomId = roomId;
     return true;
   } catch (e) {
@@ -794,9 +799,13 @@ function handleWsMessage(data) {
         tabRouted = routePendingMatchTab(data.roomId);
         if (tabRouted) {
           showMsg(lobbyMessage, 'Match opened in a new tab. Continue there while this page stays as lobby.', false);
+          // Now we can nullify it since we've verified it's routed and focused
+          pendingMatchWindow = null;
+          openMatchInNewTab = false;
         }
       } else if (data.roomId === lastRoutedRoomId) {
-        // Already routed by roomCreated
+        // Already routed by roomCreated. Verify if the window is still alive if possible.
+        // If we don't have the window reference anymore, we assume it's open unless proven otherwise.
         tabRouted = true;
       }
 
@@ -887,6 +896,8 @@ function handleWsMessage(data) {
         resumedInTab = routePendingMatchTab(data.roomId);
         if (resumedInTab) {
           showMsg(lobbyMessage, 'Resuming match in the new tab. Stay here for the lobby.', false);
+          pendingMatchWindow = null;
+          openMatchInNewTab = false;
           return;
         }
       }
@@ -1096,6 +1107,7 @@ function handleWsMessage(data) {
     case 'error':
       showMsg(lobbyMessage, data.message, true);
       enableChoices(true);
+      clearPendingMatchTab();
       break;
   }
 }
