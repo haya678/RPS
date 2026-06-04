@@ -114,6 +114,9 @@ const matchTabWaitingRoom = $('#match-tab-waiting-room');
 // ── WAITING OVERLAY ────────────────────────────────────
 function showMatchTabWaiting(roomId) {
   if (!matchOnlyMode) return;
+  // Don't show the waiting screen if we're playing the house (it starts instantly)
+  if (roomId && (roomId.includes('HOUSE') || roomId.includes('BOT'))) return;
+  
   if (matchTabWaitingRoom) matchTabWaitingRoom.textContent = roomId || '';
   matchTabWaiting?.classList.remove('hidden');
   enableChoices(false);
@@ -708,7 +711,11 @@ function handleWsMessage(data) {
           username: currentUser.username,
           roomId: directMatchRoomId
         });
-        showMatchTabWaiting(directMatchRoomId);
+        
+        // Don't show the waiting screen if we're playing the house
+        if (!directMatchRoomId.includes('HOUSE') && !directMatchRoomId.includes('BOT')) {
+          showMatchTabWaiting(directMatchRoomId);
+        }
       }
       break;
 
@@ -748,6 +755,7 @@ function handleWsMessage(data) {
 
     case 'matchStarted':
       hideMatchTabWaiting();
+      hideWaitingRoom();
       
       let tabRouted = false;
       if (openMatchInNewTab && pendingMatchWindow) {
@@ -766,8 +774,6 @@ function handleWsMessage(data) {
       if (!matchOnlyMode) {
         hideWaitingRoom();
       }
-
-      hideWaitingRoom();
       updateMatchRoomId(data.roomId);
       currentRoomId = data.roomId;
       currentWinsRequired = data.winsRequired || 2;
