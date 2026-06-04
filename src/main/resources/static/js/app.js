@@ -272,6 +272,8 @@ function setMatchOnlyMode() {
   document.body.classList.add('match-only');
 }
 
+let lastTabOpenAttempt = 0;
+
 function returnToHome() {
   // If the match that just ended/exited was a bot match, clear the tracking
   // (match is over — user clicked "Return home" from the result card)
@@ -288,8 +290,11 @@ function returnToHome() {
 
 function prepareMatchTab() {
   if (pendingMatchWindow && !pendingMatchWindow.closed) return;
+  lastTabOpenAttempt = Date.now();
   try {
-    pendingMatchWindow = window.open('', '_blank');
+    // Open a real URL (same-origin) instead of blank to be more robust
+    const loadingUrl = `${location.origin}${location.pathname}?match=pending`;
+    pendingMatchWindow = window.open(loadingUrl, '_blank');
     if (!pendingMatchWindow || pendingMatchWindow.closed) {
       pendingMatchWindow = null;
       openMatchInNewTab = false;
@@ -308,25 +313,36 @@ function routePendingMatchTab(roomId) {
   if (!pendingMatchWindow || pendingMatchWindow.closed) {
     pendingMatchWindow = null;
     openMatchInNewTab = false;
-    return;
+    return false;
   }
-  const targetUrl = `${location.origin}${location.pathname}?match=${encodeURIComponent(roomId)}`;
-  pendingMatchWindow.location.href = targetUrl;
-  pendingMatchWindow.focus();
-  pendingMatchWindow = null;
-  openMatchInNewTab = false;
+  try {
+    const targetUrl = `${location.origin}${location.pathname}?match=${encodeURIComponent(roomId)}`;
+    pendingMatchWindow.location.replace(targetUrl);
+    pendingMatchWindow.focus();
+    pendingMatchWindow = null;
+    openMatchInNewTab = false;
+    return true;
+  } catch (e) {
+    pendingMatchWindow = null;
+    openMatchInNewTab = false;
+    return false;
+  }
 }
 
 function clearPendingMatchTab() {
+  if (pendingMatchWindow && !pendingMatchWindow.closed) {
+    pendingMatchWindow.close();
+  }
   pendingMatchWindow = null;
   openMatchInNewTab = false;
 }
 
 function safeOpenMatchTab(roomId) {
   if (openMatchInNewTab && pendingMatchWindow && !pendingMatchWindow.closed) {
-    routePendingMatchTab(roomId);
+    return routePendingMatchTab(roomId);
   } else {
     clearPendingMatchTab();
+    return false;
   }
 }
 
@@ -744,9 +760,12 @@ function handleWsMessage(data) {
     case 'roomCreated':
       showWaitingRoom(data);
       if ($('#room-id-display')) $('#room-id-display').textContent = data.roomId;
+      // Only route if we specifically prepared a tab and it's still pending
       if (openMatchInNewTab && pendingMatchWindow) {
-        routePendingMatchTab(data.roomId);
-        showMsg(lobbyMessage, 'The room is open in a new tab. Keep this page for the lobby.', false);
+        const success = routePendingMatchTab(data.roomId);
+        if (success) {
+          showMsg(lobbyMessage, 'The room is open in a new tab. Keep this page for the lobby.', false);
+        }
       }
       break;
 
@@ -755,18 +774,37 @@ function handleWsMessage(data) {
       // Track all matches so the return-to-match modal can fire if the tab is closed
       setActiveMatch(data.roomId);
       
+      let tabRouted = false;
       if (openMatchInNewTab && pendingMatchWindow) {
-        routePendingMatchTab(data.roomId);
-        showMsg(lobbyMessage, 'Match opened in a new tab. Continue there while this page stays as lobby.', false);
-        showReturnMatchModal(data.roomId);
-        return;
+        tabRouted = routePendingMatchTab(data.roomId);
+        if (tabRouted) {
+          showMsg(lobbyMessage, 'Match opened in a new tab. Continue there while this page stays as lobby.', false);
+        }
       }
 
-      // If we are on the homepage (lobby), show the "Match Tab Closed" blocker instead of opening arena
+      // If we are on the homepage (lobby)
       if (!matchOnlyMode) {
         hideWaitingRoom();
-        showReturnMatchModal(data.roomId);
-        return;
+        const isHouseMatch = data.player2Id === 'BOT_BAINING';
+        
+        // Requirement 2: show return modal for House matches if we routed a tab OR if we didn't open one
+        // but we want to enforce the new tab design. 
+        // HOWEVER, if the tab failed to open, we should probably just let them play here.
+        if (tabRouted) {
+          showReturnMatchModal(data.roomId);
+          return;
+        }
+        
+        // Fallback: If no tab was opened/routed, and it's not a house match, just show the arena.
+        // If it IS a house match, we still prefer the new tab, but if it failed, we show arena.
+        if (!tabRouted && (Date.now() - lastTabOpenAttempt < 5000)) {
+           // We just tried to open a tab and it failed or was blocked. 
+           // Proceed to show arena in THIS tab.
+        } else if (!tabRouted && isHouseMatch) {
+           // If it's a house match and we didn't just try to open a tab (e.g. resumed), show modal.
+           showReturnMatchModal(data.roomId);
+           return;
+        }
       }
 
       hideWaitingRoom();
@@ -826,17 +864,24 @@ function handleWsMessage(data) {
       break;
 
     case 'matchResumed':
+      let resumedInTab = false;
       if (openMatchInNewTab && pendingMatchWindow) {
-        routePendingMatchTab(data.roomId);
-        showMsg(lobbyMessage, 'Resuming match in the new tab. Stay here for the lobby.', false);
-        return;
+        resumedInTab = routePendingMatchTab(data.roomId);
+        if (resumedInTab) {
+          showMsg(lobbyMessage, 'Resuming match in the new tab. Stay here for the lobby.', false);
+          return;
+        }
       }
       
-      // Track the match and show return modal if we are in the lobby
+      // Track the match
       setActiveMatch(data.roomId);
       if (!matchOnlyMode) {
-        showReturnMatchModal(data.roomId);
-        break;
+        const isHouseMatchResume = data.player2Id === 'BOT_BAINING';
+        // Requirement 2: only show modal for House matches
+        if (isHouseMatchResume) {
+          showReturnMatchModal(data.roomId);
+          break;
+        }
       }
       hideWaitingRoom();
       updateMatchRoomId(data.roomId);
@@ -870,9 +915,9 @@ function handleWsMessage(data) {
         resumePotEl.textContent = data.pot;
       }
       const resumeTotalRounds = currentWinsRequired * 2 - 1;
-      $('#round-display').textContent = `${data.round} (Best of ${resumeTotalRounds})`;
-      $('#p1-score').textContent = data.player1Wins || 0;
-      $('#p2-score').textContent = data.player2Wins || 0;
+      if ($('#round-display')) $('#round-display').textContent = `${data.round} (Best of ${resumeTotalRounds})`;
+      if ($('#p1-score')) $('#p1-score').textContent = data.player1Wins || 0;
+      if ($('#p2-score')) $('#p2-score').textContent = data.player2Wins || 0;
       if (scoreTarget) {
         scoreTarget.textContent = `First to ${currentWinsRequired} wins`;
       }

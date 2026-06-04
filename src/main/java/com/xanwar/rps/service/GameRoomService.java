@@ -681,7 +681,8 @@ public class GameRoomService {
         if (tornId == null || tornId.isBlank()) return;
         
         GameRoom activeRoom = rooms.values().stream()
-                .filter(room -> room.involvesPlayer(tornId) && room.getStatus() == RoomStatus.IN_PROGRESS)
+                .filter(room -> room.involvesPlayer(tornId) && 
+                               (room.getStatus() == RoomStatus.IN_PROGRESS || room.getStatus() == RoomStatus.WAITING))
                 .findFirst()
                 .orElse(null);
                 
@@ -696,6 +697,19 @@ public class GameRoomService {
             
             sessionRegistry.bindPlayer(session, tornId, username, activeRoom.getRoomId());
             
+            if (activeRoom.getStatus() == RoomStatus.WAITING) {
+                ObjectNode response = objectMapper.createObjectNode();
+                response.put("action", "roomCreated");
+                response.put("roomId", activeRoom.getRoomId());
+                response.put("betAmount", activeRoom.getBetAmount());
+                response.put("isPublic", activeRoom.getVisibility() == RoomVisibility.PUBLIC);
+                response.put("rounds", activeRoom.getWinsRequired() * 2 - 1);
+                response.put("winsRequired", activeRoom.getWinsRequired());
+                response.put("status", RoomStatus.WAITING.name());
+                sessionRegistry.sendJson(session, response);
+                return;
+            }
+
             String oppSessionId = tornId.equals(activeRoom.getPlayer1Id()) ? activeRoom.getPlayer2SessionId() : activeRoom.getPlayer1SessionId();
             if (oppSessionId != null) {
                 ObjectNode note = objectMapper.createObjectNode();
