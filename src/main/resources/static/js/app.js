@@ -137,13 +137,6 @@ function hideReturnMatchModal() {
   returnMatchModal?.classList.add('hidden');
 }
 
-function checkAndShowReturnMatchModal() {
-  const active = getActiveMatch();
-  if (active?.roomId && !matchOnlyMode) {
-    showReturnMatchModal(active.roomId);
-  }
-}
-
 reopenMatchTabBtn?.addEventListener('click', () => {
   const active = getActiveMatch();
   if (!active?.roomId) return;
@@ -1827,7 +1820,7 @@ function showPendingMatchEnd() {
     if (data.betAmount) currentMatchBet = asNumber(data.betAmount);
     showMatchOverlay(
       isWin, data.winner, data.winnings, data.rake,
-      data.player1Wins, data.player2Wins, false, currentMatchBet
+      data.player1Wins, data.player2Wins, !!data.isForfeit, currentMatchBet
     );
   }, 300);
 }
@@ -1910,7 +1903,6 @@ function setAutoLoginLoading(loading) {
         setLoggedIn(data.user);
         connectWS();
         setAutoLoginLoading(false);
-        checkAndShowReturnMatchModal();
         return;
       }
     }
@@ -1937,7 +1929,6 @@ function setAutoLoginLoading(loading) {
           setLoggedIn(data.user);
           connectWS();
           setAutoLoginLoading(false);
-          checkAndShowReturnMatchModal();
           return;
         }
       }

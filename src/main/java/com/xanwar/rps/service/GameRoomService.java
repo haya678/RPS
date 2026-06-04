@@ -276,7 +276,7 @@ public class GameRoomService {
         sessionRegistry.sendToRoom(room, forfeitMsg);
 
         cancelRoundTimer(room.getRoomId());
-        finishMatch(room, p1Wins, p2Wins);
+        finishMatch(room, p1Wins, p2Wins, true);
     }
 
     public void submitChoice(WebSocketSession session, JsonNode json) {
@@ -437,13 +437,13 @@ public class GameRoomService {
 
         if (matchOver) {
             cancelRoundTimer(room.getRoomId());
-            finishMatch(room, p1Wins, p2Wins);
+            finishMatch(room, p1Wins, p2Wins, false);
         } else {
             startRoundTimer(room);
         }
     }
 
-    private void finishMatch(GameRoom room, int p1Wins, int p2Wins) {
+    private void finishMatch(GameRoom room, int p1Wins, int p2Wins, boolean isForfeit) {
         String winnerId;
         String winnerName;
         if (p1Wins >= room.getWinsRequired()) {
@@ -468,6 +468,7 @@ public class GameRoomService {
 
         ObjectNode matchEnd = objectMapper.createObjectNode();
         matchEnd.put("action", "matchEnd");
+        matchEnd.put("roomId", room.getRoomId());
         matchEnd.put("winner", winnerName);
         matchEnd.put("winnerId", winnerId);
         matchEnd.put("pot", settlement.pot());
@@ -479,6 +480,7 @@ public class GameRoomService {
         matchEnd.put("betAmount", room.getBetAmount());
         matchEnd.put("player1", room.getPlayer1Name());
         matchEnd.put("player2", room.getPlayer2Name());
+        matchEnd.put("isForfeit", isForfeit);
 
         sessionRegistry.sendToRoom(room, matchEnd);
 
