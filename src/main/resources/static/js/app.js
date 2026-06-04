@@ -299,16 +299,15 @@ function prepareMatchTab() {
   lastTabOpenAttempt = Date.now();
   lastRoutedRoomId = null;
   try {
-    // Open about:blank first to be most compatible with popup blockers
-    pendingMatchWindow = window.open('about:blank', '_blank');
+    // Open the lobby URL with a 'pending' parameter directly
+    const loadingUrl = `${location.origin}${location.pathname}?match=pending`;
+    pendingMatchWindow = window.open(loadingUrl, '_blank');
     if (!pendingMatchWindow || pendingMatchWindow.closed) {
       pendingMatchWindow = null;
       openMatchInNewTab = false;
       showMsg(lobbyMessage, 'Popup blocked. The room will continue in this tab.', true);
       return false;
     }
-    // Now set a placeholder URL
-    pendingMatchWindow.location.href = `${location.origin}${location.pathname}?match=pending`;
     openMatchInNewTab = true;
     return true;
   } catch (error) {
@@ -327,7 +326,8 @@ function routePendingMatchTab(roomId) {
   }
   try {
     const targetUrl = `${location.origin}${location.pathname}?match=${encodeURIComponent(roomId)}`;
-    pendingMatchWindow.location.replace(targetUrl);
+    // Use href for maximum compatibility during routing
+    pendingMatchWindow.location.href = targetUrl;
     pendingMatchWindow.focus();
     pendingMatchWindow = null;
     openMatchInNewTab = false;
@@ -736,6 +736,10 @@ function handleWsMessage(data) {
       wsIdentified = true;
       requestPublicRooms();
       if (matchOnlyMode && directMatchRoomId) {
+        if (directMatchRoomId === 'pending') {
+          showMatchTabWaiting('Waiting for room...');
+          break;
+        }
         sendWs({
           action: 'joinRoom',
           tornId: currentUser.torn_id,
@@ -1863,6 +1867,10 @@ function playAgain() {
     showMsg(lobbyMessage, 'Reconnect to play again.', true);
     return;
   }
+  
+  // Prepare a tab for the rematch
+  prepareMatchTab();
+
   resetMatchUI();
   gameSectionPanel.classList.add('hidden');
   syncNotebookDoodles();
@@ -1958,6 +1966,9 @@ function setAutoLoginLoading(loading) {
   if (directMatchRoomId) {
     matchOnlyMode = true;
     document.body.classList.add('match-only');
+    if (directMatchRoomId === 'pending') {
+      showMatchTabWaiting('Connecting to room...');
+    }
   }
 
   // Mount SketchLoader into auto-login loading screen early
