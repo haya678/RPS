@@ -272,6 +272,7 @@ function setMatchOnlyMode() {
   document.body.classList.add('match-only');
 }
 
+let lastRoutedRoomId = null;
 let lastTabOpenAttempt = 0;
 
 function returnToHome() {
@@ -289,23 +290,32 @@ function returnToHome() {
 }
 
 function prepareMatchTab() {
-  if (pendingMatchWindow && !pendingMatchWindow.closed) return;
+  if (pendingMatchWindow && !pendingMatchWindow.closed) {
+    try {
+      pendingMatchWindow.focus();
+    } catch (e) {}
+    return true;
+  }
   lastTabOpenAttempt = Date.now();
+  lastRoutedRoomId = null;
   try {
-    // Open a real URL (same-origin) instead of blank to be more robust
-    const loadingUrl = `${location.origin}${location.pathname}?match=pending`;
-    pendingMatchWindow = window.open(loadingUrl, '_blank');
+    // Open about:blank first to be most compatible with popup blockers
+    pendingMatchWindow = window.open('about:blank', '_blank');
     if (!pendingMatchWindow || pendingMatchWindow.closed) {
       pendingMatchWindow = null;
       openMatchInNewTab = false;
       showMsg(lobbyMessage, 'Popup blocked. The room will continue in this tab.', true);
-      return;
+      return false;
     }
+    // Now set a placeholder URL
+    pendingMatchWindow.location.href = `${location.origin}${location.pathname}?match=pending`;
     openMatchInNewTab = true;
+    return true;
   } catch (error) {
     pendingMatchWindow = null;
     openMatchInNewTab = false;
     showMsg(lobbyMessage, 'Popup blocked. The room will continue in this tab.', true);
+    return false;
   }
 }
 
@@ -321,6 +331,7 @@ function routePendingMatchTab(roomId) {
     pendingMatchWindow.focus();
     pendingMatchWindow = null;
     openMatchInNewTab = false;
+    lastRoutedRoomId = roomId;
     return true;
   } catch (e) {
     pendingMatchWindow = null;
@@ -780,6 +791,9 @@ function handleWsMessage(data) {
         if (tabRouted) {
           showMsg(lobbyMessage, 'Match opened in a new tab. Continue there while this page stays as lobby.', false);
         }
+      } else if (data.roomId === lastRoutedRoomId) {
+        // Already routed by roomCreated
+        tabRouted = true;
       }
 
       // If we are on the homepage (lobby)
@@ -1275,21 +1289,29 @@ function checkActiveMatchBeforeAction() {
 }
 
 createRoomBtn.addEventListener('click', () => {
-  if (checkActiveMatchBeforeAction()) return;
+  const tabOpenSuccess = prepareMatchTab();
+  
+  if (checkActiveMatchBeforeAction()) {
+    if (tabOpenSuccess) clearPendingMatchTab();
+    return;
+  }
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     showMsg(lobbyMessage, 'Connecting... wait a moment and try again.', true);
+    if (tabOpenSuccess) clearPendingMatchTab();
     return;
   }
   if (!currentUser?.torn_id) {
     showMsg(lobbyMessage, 'Please log in first.', true);
+    if (tabOpenSuccess) clearPendingMatchTab();
     return;
   }
   const bet = parseInt(betInput.value, 10);
   if (!bet || bet <= 0) {
     showMsg(lobbyMessage, 'Bet must be a positive whole number.', true);
+    if (tabOpenSuccess) clearPendingMatchTab();
     return;
   }
-  prepareMatchTab();
+
   const rounds = parseInt(roundsSelect.value, 10) || 3;
   lastRoomConfig = {
     betAmount: bet,
@@ -1308,21 +1330,29 @@ createRoomBtn.addEventListener('click', () => {
 });
 
 playBotBtn?.addEventListener('click', () => {
-  if (checkActiveMatchBeforeAction()) return;
+  const tabOpenSuccess = prepareMatchTab();
+
+  if (checkActiveMatchBeforeAction()) {
+    if (tabOpenSuccess) clearPendingMatchTab();
+    return;
+  }
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     showMsg(lobbyMessage, 'Connecting... wait a moment and try again.', true);
+    if (tabOpenSuccess) clearPendingMatchTab();
     return;
   }
   if (!currentUser?.torn_id) {
     showMsg(lobbyMessage, 'Please log in first.', true);
+    if (tabOpenSuccess) clearPendingMatchTab();
     return;
   }
   const bet = parseInt(betInput.value, 10);
   if (!bet || bet <= 0) {
     showMsg(lobbyMessage, 'Bet must be a positive whole number.', true);
+    if (tabOpenSuccess) clearPendingMatchTab();
     return;
   }
-  prepareMatchTab();
+
   const rounds = parseInt(roundsSelect.value, 10) || 3;
   lastRoomConfig = {
     betAmount: bet,
@@ -1364,17 +1394,24 @@ copyRoomCodeBtn?.addEventListener('click', async () => {
 });
 
 joinRoomBtn.addEventListener('click', () => {
-  if (checkActiveMatchBeforeAction()) return;
+  const tabOpenSuccess = prepareMatchTab();
+
+  if (checkActiveMatchBeforeAction()) {
+    if (tabOpenSuccess) clearPendingMatchTab();
+    return;
+  }
   if (waitingRoomPanel && !waitingRoomPanel.classList.contains('hidden')) {
     showMsg(lobbyMessage, 'Cancel your open room before joining another.', true);
+    if (tabOpenSuccess) clearPendingMatchTab();
     return;
   }
   const code = roomCodeInput.value.trim();
   if (!code) {
     showMsg(lobbyMessage, 'Enter a room code.', true);
+    if (tabOpenSuccess) clearPendingMatchTab();
     return;
   }
-  prepareMatchTab();
+
   sendWs({
     action: 'joinRoom',
     tornId: currentUser.torn_id,
