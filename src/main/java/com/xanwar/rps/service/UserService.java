@@ -2,8 +2,11 @@ package com.xanwar.rps.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.xanwar.rps.client.TornApiClient;
+import com.xanwar.rps.dto.MatchHistoryDto;
 import com.xanwar.rps.dto.UserDto;
+import com.xanwar.rps.model.MatchResult;
 import com.xanwar.rps.model.User;
+import com.xanwar.rps.repository.MatchResultRepository;
 import com.xanwar.rps.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -123,14 +126,14 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public List<com.xanwar.rps.dto.MatchHistoryDto> getMatchHistory(String tornId) {
+    public List<MatchHistoryDto> getMatchHistory(String tornId) {
         return matchResultRepository.findByPlayer1IdOrPlayer2IdOrderByCreatedAtDesc(tornId, tornId).stream()
                 .map(m -> {
                     boolean won = tornId.equals(m.getWinnerId());
                     String opponentId = tornId.equals(m.getPlayer1Id()) ? m.getPlayer2Id() : m.getPlayer1Id();
                     String opponentName = tornId.equals(m.getPlayer1Id()) ? m.getPlayer2Name() : m.getPlayer1Name();
                     String profilePic = resolveOpponentProfilePic(opponentId);
-                    return new com.xanwar.rps.dto.MatchHistoryDto(
+                    return new MatchHistoryDto(
                             won,
                             m.getPotAmount(),
                             opponentName,
