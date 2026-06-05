@@ -17,11 +17,13 @@ import java.util.Optional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final MatchResultRepository matchResultRepository;
     private final TornApiClient tornApiClient;
     private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository, TornApiClient tornApiClient, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, MatchResultRepository matchResultRepository, TornApiClient tornApiClient, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.matchResultRepository = matchResultRepository;
         this.tornApiClient = tornApiClient;
         this.passwordEncoder = passwordEncoder;
     }
@@ -96,7 +98,7 @@ public class UserService {
     }
 
     @Transactional
-    public void recordMatchOutcome(String winnerId, String loserId, long winnerPayout, long betAmount) {
+    public void recordMatchOutcome(String winnerId, String loserId, long winnerPayout, long betAmount, String p1Id, String p1Name, String p2Id, String p2Name, boolean isForfeit) {
         if (!"BOT_BAINING".equals(winnerId)) {
             User winner = requireUser(winnerId);
             winner.setTotalMatchesPlayed(winner.safeMatchesPlayed() + 1);
@@ -112,6 +114,41 @@ public class UserService {
             loser.setTotalMoolaLost(loser.safeMoolaLost() + stake);
             userRepository.save(loser);
         }
+
+        // Save historical match result
+        MatchResult result = new MatchResult(
+            p1Id, p1Name, p2Id, p2Name, winnerId, betAmount * 2, betAmount, isForfeit
+        );
+        matchResultRepository.save(result);
+    }
+
+    @Transactional(readOnly = true)
+    public List<com.xanwar.rps.dto.MatchHistoryDto> getMatchHistory(String tornId) {
+        return matchResultRepository.findByPlayer1IdOrPlayer2IdOrderByCreatedAtDesc(tornId, tornId).stream()
+                .map(m -> {
+                    boolean won = tornId.equals(m.getWinnerId());
+                    String opponentId = tornId.equals(m.getPlayer1Id()) ? m.getPlayer2Id() : m.getPlayer1Id();
+                    String opponentName = tornId.equals(m.getPlayer1Id()) ? m.getPlayer2Name() : m.getPlayer1Name();
+                    String profilePic = resolveOpponentProfilePic(opponentId);
+                    return new com.xanwar.rps.dto.MatchHistoryDto(
+                            won,
+                            m.getPotAmount(),
+                            opponentName,
+                            profilePic,
+                            m.getCreatedAt(),
+                            m.isForfeit()
+                    );
+                })
+                .toList();
+    }
+
+    private String resolveOpponentProfilePic(String opponentId) {
+        if ("BOT_BAINING".equals(opponentId)) {
+            return "/baining.jpg";
+        }
+        return userRepository.findByTornId(opponentId)
+                .map(User::getProfileImageUrl)
+                .orElse("https://images.torn.com/avatars/" + opponentId + ".png");
     }
 
     private void validatePin(String pin) {

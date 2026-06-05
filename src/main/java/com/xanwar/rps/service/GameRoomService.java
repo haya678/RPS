@@ -460,7 +460,12 @@ public class GameRoomService {
         }
         String loserId = winnerId.equals(room.getPlayer1Id()) ? room.getPlayer2Id() : room.getPlayer1Id();
         String loserName = winnerId.equals(room.getPlayer1Id()) ? room.getPlayer2Name() : room.getPlayer1Name();
-        userService.recordMatchOutcome(winnerId, loserId, settlement.winnerPayout(), room.getBetAmount());
+        userService.recordMatchOutcome(
+            winnerId, loserId, settlement.winnerPayout(), room.getBetAmount(),
+            room.getPlayer1Id(), room.getPlayer1Name(),
+            room.getPlayer2Id(), room.getPlayer2Name(),
+            isForfeit
+        );
 
         synchronized (room) {
             room.setStatus(RoomStatus.FINISHED);

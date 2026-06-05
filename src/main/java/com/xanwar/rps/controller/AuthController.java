@@ -3,6 +3,7 @@ package com.xanwar.rps.controller;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import com.fasterxml.jackson.databind.annotation.JsonNaming;
 import com.xanwar.rps.dto.AuthRequest;
+import com.xanwar.rps.dto.MatchHistoryDto;
 import com.xanwar.rps.dto.UserDto;
 import com.xanwar.rps.model.User;
 import com.xanwar.rps.repository.UserRepository;
@@ -133,6 +134,11 @@ public class AuthController {
 
         session.invalidate();
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/user/{tornId}/matches")
+    public ResponseEntity<List<MatchHistoryDto>> getMatchHistory(@PathVariable String tornId) {
+        return ResponseEntity.ok(userService.getMatchHistory(tornId));
     }
 
     @GetMapping("/leaderboard")

@@ -110,6 +110,10 @@ const roundTimerDisplay = $('#round-timer-display');
 const matchInfoMessage = $('#match-info-message');
 const matchTabWaiting = $('#match-tab-waiting');
 const matchTabWaitingRoom = $('#match-tab-waiting-room');
+const matchHistoryButton = $('#match-history-button');
+const matchHistoryModal = $('#match-history-modal');
+const closeMatchHistoryModalBtn = $('#close-match-history-modal');
+const matchHistoryList = $('#match-history-list');
 
 // ── WAITING OVERLAY ────────────────────────────────────
 function showMatchTabWaiting(roomId) {
@@ -1341,6 +1345,63 @@ profileButton?.addEventListener('click', (e) => {
   e.stopPropagation();
   openProfileModal(currentUser.username, currentUser);
 });
+
+matchHistoryButton?.addEventListener('click', () => {
+  if (!currentUser) return;
+  loadMatchHistory();
+  matchHistoryModal?.classList.remove('hidden');
+});
+
+closeMatchHistoryModalBtn?.addEventListener('click', () => {
+  matchHistoryModal?.classList.add('hidden');
+});
+
+matchHistoryModal?.addEventListener('click', (e) => {
+  if (e.target === matchHistoryModal) matchHistoryModal.classList.add('hidden');
+});
+
+async function loadMatchHistory() {
+  if (!currentUser || !matchHistoryList) return;
+  matchHistoryList.innerHTML = '<li class="info">Loading history...</li>';
+  try {
+    const res = await fetch(`/api/user/${currentUser.torn_id}/matches`, { credentials: 'same-origin' });
+    if (!res.ok) throw new Error('Failed to load history');
+    const matches = await res.json();
+    renderMatchHistory(matches);
+  } catch (err) {
+    matchHistoryList.innerHTML = '<li class="info">Failed to load match history.</li>';
+  }
+}
+
+function renderMatchHistory(matches) {
+  if (!matches || !matches.length) {
+    matchHistoryList.innerHTML = '<li class="info">No matches found. Go start a duel!</li>';
+    return;
+  }
+  
+  matchHistoryList.innerHTML = matches.map(m => {
+    const outcomeClass = m.won ? 'win' : 'loss';
+    const outcomeText = m.won ? 'Win' : 'Loss';
+    const date = new Date(m.timestamp).toLocaleDateString() + ' ' + new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const potFormatted = typeof MoolaIcon !== 'undefined' 
+      ? `${MoolaIcon.iconHtml('moola-icon--small')}<span>${m.potAmount.toLocaleString()}</span>` 
+      : m.potAmount.toLocaleString();
+
+    return `
+      <li class="match-history-item">
+        <img class="history-opponent-avatar" src="${m.opponentProfilePic}" alt="">
+        <div class="history-details">
+          <span class="history-opponent-name">${escapeHtml(m.opponentName)}</span>
+          <span class="history-meta">${date}${m.isForfeit ? ' (Forfeit)' : ''}</span>
+        </div>
+        <div class="history-result">
+          <span class="history-outcome ${outcomeClass}">${outcomeText}</span>
+          <span class="history-pot">${potFormatted}</span>
+        </div>
+      </li>
+    `;
+  }).join('');
+}
 
 document.addEventListener('mouseover', (e) => {
   const btn = e.target.closest('.player-profile-btn, .player-avatar-btn');

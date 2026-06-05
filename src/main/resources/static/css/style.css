@@ -2400,3 +2400,124 @@ body.match-only .game-main {
 
 
 
+
+/* -- MATCH HISTORY ----------------------------- */
+.match-history-card {
+  max-width: 500px;
+  width: 95%;
+  padding: 1.5rem;
+}
+
+.match-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  border-bottom: 2px solid var(--line);
+  padding-bottom: 0.5rem;
+}
+
+.match-history-header h2 {
+  margin: 0;
+}
+
+.match-history-container {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.match-history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.match-history-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  border-bottom: 1px solid var(--line);
+  transition: background-color 0.2s;
+}
+
+.match-history-item:last-child {
+  border-bottom: none;
+}
+
+.match-history-item:hover {
+  background-color: rgba(0,0,0,0.03);
+}
+
+.history-opponent-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  object-fit: cover;
+  background: #eee;
+}
+
+.history-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.history-opponent-name {
+  font-weight: bold;
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.history-meta {
+  font-size: 0.8rem;
+  color: #777;
+  margin-top: 0.1rem;
+}
+
+.history-result {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.2rem;
+}
+
+.history-outcome {
+  font-weight: bold;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.history-outcome.win {
+  color: var(--accent);
+}
+
+.history-outcome.loss {
+  color: #b22d2d;
+}
+
+.history-pot {
+  font-size: 0.95rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.match-history-container::-webkit-scrollbar {
+  width: 6px;
+}
+
+.match-history-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.match-history-container::-webkit-scrollbar-thumb {
+  background: var(--line);
+  border-radius: 10px;
+}
+
