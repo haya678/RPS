@@ -250,7 +250,7 @@ function returnToHome() {
   showMsg(lobbyMessage, 'Returned to lobby.', false);
 }
 
-function prepareMatchTab(roomId) {
+function prepareMatchTab(roomId, isHouse = false) {
   if (pendingMatchWindow && !pendingMatchWindow.closed) {
     try {
       pendingMatchWindow.focus();
@@ -259,13 +259,13 @@ function prepareMatchTab(roomId) {
       return true;
     } catch (e) {}
   }
-  
+
   lastTabOpenAttempt = Date.now();
   lastRoutedRoomId = roomId || null;
-  
-  const targetUrl = roomId 
+
+  const targetUrl = roomId
     ? `${location.origin}${location.pathname}?match=${encodeURIComponent(roomId)}`
-    : `${location.origin}${location.pathname}?match=pending`;
+    : `${location.origin}${location.pathname}?match=${isHouse ? 'pending-house' : 'pending'}`;
 
   try {
     // Use a specific window name to help some browsers associate the popup with the interaction
@@ -1254,7 +1254,7 @@ createRoomBtn.addEventListener('click', () => {
 });
 
 playBotBtn?.addEventListener('click', () => {
-  const tabOpenSuccess = prepareMatchTab();
+  const tabOpenSuccess = prepareMatchTab(null, true);
 
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     showMsg(lobbyMessage, 'Connecting... wait a moment and try again.', true);
@@ -1346,18 +1346,20 @@ profileButton?.addEventListener('click', (e) => {
   openProfileModal(currentUser.username, currentUser);
 });
 
-matchHistoryButton?.addEventListener('click', () => {
+matchHistoryButton?.addEventListener('click', (e) => {
   if (!currentUser) return;
+  e.stopPropagation();
   loadMatchHistory();
   matchHistoryModal?.classList.remove('hidden');
 });
 
-closeMatchHistoryModalBtn?.addEventListener('click', () => {
+closeMatchHistoryModalBtn?.addEventListener('click', (e) => {
+  e.stopPropagation();
   matchHistoryModal?.classList.add('hidden');
 });
 
 matchHistoryModal?.addEventListener('click', (e) => {
-  if (e.target === matchHistoryModal) matchHistoryModal.classList.add('hidden');
+  e.stopPropagation();
 });
 
 async function loadMatchHistory() {
@@ -1433,6 +1435,11 @@ document.addEventListener('click', (e) => {
   if (profileModal && !profileModal.classList.contains('hidden')) {
     if (!profileModal.contains(e.target) && !profileButton?.contains(e.target)) {
       profileModal.classList.add('hidden');
+    }
+  }
+  if (matchHistoryModal && !matchHistoryModal.classList.contains('hidden')) {
+    if (!matchHistoryModal.contains(e.target) && !matchHistoryButton?.contains(e.target)) {
+      matchHistoryModal.classList.add('hidden');
     }
   }
 });
@@ -1938,6 +1945,7 @@ function setAutoLoginLoading(loading) {
     if (directMatchRoomId === 'pending') {
       showMatchTabWaiting('Connecting to room...');
     }
+    // if pending-house, we don't show the waiting screen
   }
 
   // Mount SketchLoader into auto-login loading screen early

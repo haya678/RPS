@@ -2255,6 +2255,38 @@ body.match-only .game-main {
   box-shadow: 3px 3px 0 var(--ink);
 }
 
+/* ── MATCH HISTORY DROPDOWN ────────────────────── */
+.match-history-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 61;
+  margin-top: 0.5rem;
+  width: 480px;
+  max-width: calc(100vw - 2rem);
+  animation: dropdownSlide 0.15s ease-out;
+}
+
+.match-history-card {
+  padding: 1rem;
+}
+
+.match-history-container {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .match-history-dropdown {
+    position: fixed;
+    top: 5rem;
+    left: 1rem;
+    right: 1rem;
+    width: auto;
+    max-width: none;
+  }
+}
+
 .profile-dropdown-header {
   font-family: 'Gochi Hand', cursive;
   font-size: 1.1rem;

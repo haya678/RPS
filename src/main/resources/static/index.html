@@ -56,6 +56,19 @@
               <button id="close-profile-modal" class="btn-secondary btn-small" type="button">Close</button>
             </div>
           </div>
+          <div id="match-history-modal" class="match-history-dropdown hidden" role="dialog" aria-labelledby="match-history-title" aria-modal="true">
+            <div class="match-history-card panel">
+              <div class="match-history-header">
+                <h2 id="match-history-title">Match History</h2>
+                <button id="close-match-history-modal" class="btn-secondary btn-small" type="button">Close</button>
+              </div>
+              <div class="match-history-container">
+                <ul id="match-history-list" class="match-history-list">
+                  <li class="info">No matches found.</li>
+                </ul>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="top-actions">
           <a id="admin-link" href="/admin.html" class="btn-link hidden">Admin</a>
@@ -314,20 +327,6 @@
         </div>
       </div>
       <button id="close-deposit-verified-modal" class="btn-accent" type="button">Got it</button>
-    </div>
-  </div>
-
-  <div id="match-history-modal" class="modal hidden" role="dialog" aria-labelledby="match-history-title" aria-modal="true">
-    <div class="modal-card panel match-history-card">
-      <div class="match-history-header">
-        <h2 id="match-history-title">Match History</h2>
-        <button id="close-match-history-modal" class="btn-secondary btn-small" type="button">Close</button>
-      </div>
-      <div class="match-history-container">
-        <ul id="match-history-list" class="match-history-list">
-          <li class="info">No matches found.</li>
-        </ul>
-      </div>
     </div>
   </div>
 
