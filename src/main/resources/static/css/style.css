@@ -532,6 +532,7 @@ button:not(:disabled):hover {
   align-items: center;
   gap: 1rem;
   position: relative;
+  z-index: 700;
 }
 
 .top-actions {
@@ -2241,7 +2242,7 @@ body.match-only .game-main {
   position: absolute;
   top: 100%;
   left: 0;
-  z-index: 60;
+  z-index: 600;
   margin-top: 0.5rem;
   min-width: 240px;
   animation: dropdownSlide 0.15s ease-out;
@@ -2260,7 +2261,7 @@ body.match-only .game-main {
   position: absolute;
   top: 100%;
   left: 0;
-  z-index: 61;
+  z-index: 601;
   margin-top: 0.5rem;
   width: 480px;
   max-width: calc(100vw - 2rem);
@@ -2421,9 +2422,41 @@ body.match-only .game-main {
 }
 
 /* ── RETURN-TO-MATCH MODAL ACTIONS ───────────── */
+.return-match-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500; /* Extremely high priority */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #FAF8F5; /* Match notebook background */
+  background-image:
+    linear-gradient(90deg, transparent 79px, #ffa0a0 79px, #ffa0a0 81px, transparent 81px),
+    repeating-linear-gradient(
+      to bottom,
+      #FAF8F5,
+      #FAF8F5 27px,
+      var(--line) 28px
+    );
+  padding: 1rem;
+}
+
 .return-match-card {
-  max-width: 420px;
+  max-width: 440px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.return-match-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.return-match-actions button {
+  flex: 1;
 }
 
 #lobby-section {
