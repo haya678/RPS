@@ -115,6 +115,7 @@ const matchHistoryList = $('#match-history-list');
 const returnMatchOverlay = $('#return-match-overlay');
 const reopenMatchTabBtn = $('#reopen-match-tab-btn');
 const forfeitMatchBtn = $('#forfeit-match-btn');
+const leaveWaitingRoomBtn = $('#leave-waiting-room-btn');
 
 // ── WAITING OVERLAY ────────────────────────────────────
 function showMatchTabWaiting(roomId) {
@@ -1269,6 +1270,27 @@ forfeitMatchBtn?.addEventListener('click', () => {
     // The server will send a matchEnd or roomCancelled, but we can proactively hide the overlay
     returnMatchOverlay?.classList.add('hidden');
     localStorage.removeItem('activeMatchRoomId');
+  }
+});
+
+leaveWaitingRoomBtn?.addEventListener('click', () => {
+  const roomId = matchTabWaitingRoom?.textContent?.trim();
+  if (!roomId || !currentUser) {
+    hideMatchTabWaiting();
+    return;
+  }
+  
+  if (confirm('Cancel this room and return to the lobby?')) {
+    sendWs({
+      action: 'cancelRoom',
+      tornId: currentUser.torn_id,
+      roomId: roomId
+    });
+    hideMatchTabWaiting();
+    updateMatchRoomId(null);
+    if (matchOnlyMode) {
+      returnToHome();
+    }
   }
 });
 
