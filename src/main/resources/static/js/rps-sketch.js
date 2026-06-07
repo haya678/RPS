@@ -145,6 +145,12 @@ const RpsSketch = (() => {
             label.textContent = names[finalChoice] || '';
           }
           host.classList.add('flip-settled');
+          
+          // Switch to 3D reveal if Rps3D is available
+          if (typeof Rps3D !== 'undefined' && host) {
+            Rps3D.init3DReveal(host, finalChoice);
+          }
+          
           resolve();
         }
       });

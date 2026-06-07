@@ -525,6 +525,8 @@ button:not(:disabled):hover {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+  z-index: 100;
 }
 
 .user-info {
@@ -2041,7 +2043,7 @@ body.match-only .game-main {
   justify-content: center;
   align-items: center;
   padding: 1rem;
-  z-index: 50;
+  z-index: 2000;
   backdrop-filter: blur(1.5px);
 }
 
@@ -2184,7 +2186,7 @@ body.match-only .game-main {
 .auto-login-loading {
   position: fixed;
   inset: 0;
-  z-index: 80;
+  z-index: 2100;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2389,7 +2391,7 @@ body.match-only .game-main {
 .match-tab-waiting {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: 2050;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2435,7 +2437,7 @@ body.match-only .game-main {
 .return-match-overlay {
   position: fixed;
   inset: 0;
-  z-index: 500; /* Extremely high priority */
+  z-index: 2200; /* Extremely high priority */
   display: flex;
   justify-content: center;
   align-items: center;
