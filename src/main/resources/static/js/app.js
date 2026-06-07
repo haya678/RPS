@@ -131,6 +131,37 @@ function hideMatchTabWaiting() {
   matchTabWaiting?.classList.add('hidden');
 }
 
+// ── RETURN TO MATCH MODAL ──────────────────────────────
+function setActiveHouseMatch(roomId) {
+  localStorage.setItem('activeHouseMatch', JSON.stringify({ roomId }));
+}
+
+function clearActiveHouseMatch() {
+  localStorage.removeItem('activeHouseMatch');
+}
+
+function getActiveHouseMatch() {
+  try {
+    return JSON.parse(localStorage.getItem('activeHouseMatch') || 'null');
+  } catch { return null; }
+}
+
+function showReturnMatchModal(roomId) {
+  if (matchOnlyMode) return;
+  returnMatchOverlay?.classList.remove('hidden');
+}
+
+function hideReturnMatchModal() {
+  returnMatchOverlay?.classList.add('hidden');
+}
+
+function checkAndShowReturnMatchModal() {
+  const active = getActiveHouseMatch();
+  if (active && active.roomId && !matchOnlyMode) {
+    showReturnMatchModal(active.roomId);
+  }
+}
+
 // ── UTILITIES ──────────────────────────────────────────
 function showMsg(el, msg, isError) {
   if (!el) return;
@@ -368,6 +399,39 @@ function mountGameUiDecorations() {
     RpsSketch.mountChoiceButtons();
     RpsSketch.mountSnowflakes();
   }
+  // Fill choice icons with 3D buttons
+  $$('.choice-sketch').forEach(host => {
+    const choice = host.getAttribute('data-choice') || host.closest('.choice-btn')?.dataset.choice;
+    if (choice && typeof Rps3D !== 'undefined') {
+      Rps3D.init3DButton(host, choice);
+    }
+  });
+}
+
+function updateMatchSelectionStatus(data) {
+  const infoMsg = $('#match-info-message');
+  if (!infoMsg) return;
+  
+  let status = '';
+  const p1Selected = data.player1Choice !== null && data.player1Choice !== undefined;
+  const p2Selected = data.player2Choice !== null && data.player2Choice !== undefined;
+  
+  const p1Name = data.player1Name || data.player1 || 'Player 1';
+  const p2Name = data.player2Name || data.player2 || 'Player 2';
+  
+  const isP1 = currentUser && (data.player1Id === currentUser.torn_id || data.player1 === currentUser.username);
+
+  if (p1Selected && p2Selected) {
+    status = "Both players ready! Reveal starting...";
+  } else if (p1Selected && !p2Selected) {
+    status = isP1 ? "Selection confirmed, waiting for opponent..." : `<strong>${p1Name}</strong> has selected, please select!`;
+  } else if (!p1Selected && p2Selected) {
+    status = !isP1 ? "Selection confirmed, waiting for opponent..." : `<strong>${p2Name}</strong> has selected, please select!`;
+  } else {
+    status = "Waiting for selections...";
+  }
+  
+  infoMsg.innerHTML = status;
 }
 
 function syncNotebookDoodles() {
@@ -484,6 +548,7 @@ function setLoggedOut() {
   closeDepositVerifiedModal();
   hideWaitingRoom();
   syncNotebookDoodles();
+  clearActiveHouseMatch();
 }
 
 function formatChatTime(ts) {
@@ -625,12 +690,6 @@ function handleWsMessage(data) {
       wsIdentified = true;
       requestPublicRooms();
       
-      const savedActiveRoom = localStorage.getItem('activeMatchRoomId');
-      if (savedActiveRoom && !matchOnlyMode) {
-        setMatchOnlyMode();
-        history.replaceState(null, '', `?match=${encodeURIComponent(savedActiveRoom)}`);
-      }
-
       if (matchOnlyMode && directMatchRoomId) {
         sendWs({
           action: 'joinRoom',
@@ -643,6 +702,8 @@ function handleWsMessage(data) {
         if (!directMatchRoomId.includes('HOUSE') && !directMatchRoomId.includes('BOT')) {
           showMatchTabWaiting(directMatchRoomId);
         }
+      } else {
+        checkAndShowReturnMatchModal();
       }
       break;
 
@@ -677,7 +738,11 @@ function handleWsMessage(data) {
       hideMatchTabWaiting();
       hideWaitingRoom();
       
-      updateMatchRoomId(data.roomId);
+      const isBotMatch = data.player2Id === 'BOT_BAINING';
+      if (isBotMatch) {
+        setActiveHouseMatch(data.roomId);
+        showReturnMatchModal(data.roomId);
+      }
 
       if (!matchOnlyMode) {
         setMatchOnlyMode();
@@ -697,8 +762,8 @@ function handleWsMessage(data) {
       currentP1Id = data.player1Id || null;
       currentP2Id = data.player2Id || null;
       pendingMatchEnd = null;
-      matchPlayers.p1 = { id: data.player1Id, name: data.player1, avatar: '' };
-      matchPlayers.p2 = { id: data.player2Id, name: data.player2, avatar: '' };
+      matchPlayers.p1 = { id: data.player1Id, name: data.player1, avatar: '', selected: false };
+      matchPlayers.p2 = { id: data.player2Id, name: data.player2, avatar: '', selected: false };
       gameSectionPanel.classList.remove('hidden');
       mountGameUiDecorations();
       matchRoomChat.classList.remove('hidden');
@@ -725,7 +790,14 @@ function handleWsMessage(data) {
       roundResult.classList.add('hidden');
       matchResult.classList.add('hidden');
       enableChoices(true);
-      showMsg(lobbyMessage, 'Match started! Make your choice.', false);
+      
+      updateMatchSelectionStatus({
+        player1Id: currentP1Id,
+        player2Id: currentP2Id,
+        player1Name: matchPlayers.p1.name,
+        player2Name: matchPlayers.p2.name
+      });
+
       loadMatchPlayerProfile(data.player1Id, 'p1');
       loadMatchPlayerProfile(data.player2Id, 'p2');
       if (data.expiresAt) {
@@ -760,8 +832,11 @@ function handleWsMessage(data) {
       currentP1Id = data.player1Id || null;
       currentP2Id = data.player2Id || null;
       pendingMatchEnd = null;
-      matchPlayers.p1 = { id: data.player1Id, name: data.player1, avatar: '' };
-      matchPlayers.p2 = { id: data.player2Id, name: data.player2, avatar: '' };
+      
+      const isP1Res = currentUser && (currentP1Id === currentUser.torn_id);
+      matchPlayers.p1 = { id: data.player1Id, name: data.player1, avatar: '', selected: data.player1Choice !== null || (isP1Res && data.alreadySubmitted) };
+      matchPlayers.p2 = { id: data.player2Id, name: data.player2, avatar: '', selected: data.player2Choice !== null || (!isP1Res && data.alreadySubmitted) };
+
       gameSectionPanel.classList.remove('hidden');
       mountGameUiDecorations();
       matchRoomChat.classList.remove('hidden');
@@ -787,7 +862,16 @@ function handleWsMessage(data) {
       roundResult.classList.add('hidden');
       matchResult.classList.add('hidden');
       enableChoices(!data.alreadySubmitted);
-      showMsg(lobbyMessage, 'Match resumed. Continue your duel.', false);
+      
+      updateMatchSelectionStatus({
+        player1Id: currentP1Id,
+        player2Id: currentP2Id,
+        player1Name: matchPlayers.p1.name,
+        player2Name: matchPlayers.p2.name,
+        player1Choice: matchPlayers.p1.selected ? 'hidden' : null,
+        player2Choice: matchPlayers.p2.selected ? 'hidden' : null
+      });
+
       loadMatchPlayerProfile(data.player1Id, 'p1');
       loadMatchPlayerProfile(data.player2Id, 'p2');
       if (data.timerExpiresAt) {
@@ -809,14 +893,23 @@ function handleWsMessage(data) {
       break;
 
     case 'opponentSelected':
-      showMsg(matchInfoMessage || lobbyMessage, 'Opponent has made their move. Hold tight for the reveal.', false);
+      if (currentP1Id === currentUser?.torn_id) {
+        matchPlayers.p2.selected = true;
+      } else {
+        matchPlayers.p1.selected = true;
+      }
+      updateMatchSelectionStatus({
+        player1Id: currentP1Id,
+        player2Id: currentP2Id,
+        player1Name: matchPlayers.p1.name,
+        player2Name: matchPlayers.p2.name,
+        player1Choice: matchPlayers.p1.selected ? 'hidden' : null,
+        player2Choice: matchPlayers.p2.selected ? 'hidden' : null
+      });
       break;
 
     case 'opponentConnected':
       showMsg(lobbyMessage, 'Opponent reconnected. Match continues.', false);
-      break;
-
-    case 'choiceReceived':
       break;
 
     case 'roundResult': {
@@ -837,6 +930,8 @@ function handleWsMessage(data) {
 
       enableChoices(false);
       choiceBtns.forEach(b => b.classList.remove('selected'));
+      matchPlayers.p1.selected = false;
+      matchPlayers.p2.selected = false;
 
       animateChoiceReveal(
         data.player1, data.player2,
@@ -891,6 +986,12 @@ function handleWsMessage(data) {
             hideChoiceReveal();
             roundResult.classList.add('hidden');
             enableChoices(true);
+            updateMatchSelectionStatus({
+              player1Id: currentP1Id,
+              player2Id: currentP2Id,
+              player1Name: matchPlayers.p1.name,
+              player2Name: matchPlayers.p2.name
+            });
           }, 2000);
         }
       });
@@ -919,6 +1020,7 @@ function handleWsMessage(data) {
       hideMatchTabWaiting();
       showMsg(lobbyMessage, data.message || 'Room closed.', false);
       updateMatchRoomId(null);
+      clearActiveHouseMatch();
       currentRoomId = null;
       gameSectionPanel.classList.add('hidden');
       roomChatSection.classList.add('hidden');
@@ -1250,26 +1352,27 @@ matchHistoryModal?.addEventListener('click', (e) => {
 });
 
 reopenMatchTabBtn?.addEventListener('click', () => {
-  const activeRoomId = localStorage.getItem('activeMatchRoomId');
-  if (activeRoomId) {
+  const active = getActiveHouseMatch();
+  if (active && active.roomId) {
+    hideReturnMatchModal();
     setMatchOnlyMode();
-    history.replaceState(null, '', `?match=${encodeURIComponent(activeRoomId)}`);
+    history.replaceState(null, '', `?match=${encodeURIComponent(active.roomId)}`);
   }
 });
 
 forfeitMatchBtn?.addEventListener('click', () => {
-  const activeRoomId = localStorage.getItem('activeMatchRoomId');
-  if (!activeRoomId || !currentUser) return;
+  const active = getActiveHouseMatch();
+  if (!active || !active.roomId || !currentUser) return;
   
   if (confirm('Are you sure you want to forfeit? This will count as a loss.')) {
     sendWs({
       action: 'forfeitMatch',
       tornId: currentUser.torn_id,
-      roomId: activeRoomId
+      roomId: active.roomId
     });
-    // The server will send a matchEnd or roomCancelled, but we can proactively hide the overlay
-    returnMatchOverlay?.classList.add('hidden');
-    localStorage.removeItem('activeMatchRoomId');
+    hideReturnMatchModal();
+    clearActiveHouseMatch();
+    updateMatchRoomId(null);
   }
 });
 
@@ -1621,66 +1724,75 @@ function openProfileModal(username, data) {
 // ── CHOICES ────────────────────────────────────────────
 const RPS_LABELS = { rock: 'Rock', paper: 'Paper', scissors: 'Scissors' };
 
-function animateChoiceReveal(p1Name, p2Name, p1Choice, p2Choice, roundWinner) {
-  return new Promise((resolve) => {
-    const p1Slot = $('#reveal-p1-slot');
-    const p2Slot = $('#reveal-p2-slot');
-    const p1Player = p1Slot?.closest('.reveal-player');
-    const p2Player = p2Slot?.closest('.reveal-player');
-    const vsEl = choiceReveal?.querySelector('.reveal-vs');
+async function animateChoiceReveal(p1Name, p2Name, p1Choice, p2Choice, roundWinner) {
+  const p1Slot = $('#reveal-p1-slot');
+  const p2Slot = $('#reveal-p2-slot');
+  const p1Player = p1Slot?.closest('.reveal-player');
+  const p2Player = p2Slot?.closest('.reveal-player');
+  const vsEl = choiceReveal?.querySelector('.reveal-vs');
 
-    $('#reveal-p1-name').textContent = p1Name;
-    $('#reveal-p2-name').textContent = p2Name;
-    if (matchPlayers.p1.avatar) $('#reveal-p1-avatar').src = matchPlayers.p1.avatar;
-    if (matchPlayers.p2.avatar) $('#reveal-p2-avatar').src = matchPlayers.p2.avatar;
+  $('#reveal-p1-name').textContent = p1Name;
+  $('#reveal-p2-name').textContent = p2Name;
+  if (matchPlayers.p1.avatar) $('#reveal-p1-avatar').src = matchPlayers.p1.avatar;
+  if (matchPlayers.p2.avatar) $('#reveal-p2-avatar').src = matchPlayers.p2.avatar;
 
-    $('#reveal-p1-label').textContent = '';
-    $('#reveal-p2-label').textContent = '';
+  $('#reveal-p1-label').textContent = '';
+  $('#reveal-p2-label').textContent = '';
 
-    p1Slot.classList.remove('clash-hit', 'shaking');
-    p2Slot.classList.remove('clash-hit', 'shaking');
-    p1Player?.classList.remove('winner-glow');
-    p2Player?.classList.remove('winner-glow');
-    choiceReveal.classList.remove('hidden', 'reveal-active');
-    void choiceReveal.offsetWidth;
-    choiceReveal.classList.add('reveal-active');
-    p1Slot.classList.add('shaking');
-    p2Slot.classList.add('shaking');
+  p1Slot.classList.remove('clash-hit', 'shaking');
+  p2Slot.classList.remove('clash-hit', 'shaking');
+  p1Player?.classList.remove('winner-glow');
+  p2Player?.classList.remove('winner-glow');
+  choiceReveal.classList.remove('hidden', 'reveal-active');
+  void choiceReveal.offsetWidth;
+  choiceReveal.classList.add('reveal-active');
 
+  // Start with 3D fist-pumping
+  const p1Reveal = Rps3D.init3DReveal(p1Slot, 'fist', true);
+  const p2Reveal = Rps3D.init3DReveal(p2Slot, 'fist', true);
+
+  if (typeof MatchFx !== 'undefined') {
+    MatchFx.playReveal();
+  }
+
+  // ROCK! PAPER! SCISSORS! SHOOT! sequence
+  const countdowns = ['ROCK!', 'PAPER!', 'SCISSORS!', 'SHOOT!'];
+  for (const text of countdowns) {
+    Rps3D.init3DCountdown(vsEl, text);
     if (typeof MatchFx !== 'undefined') {
-      MatchFx.playReveal();
+      MatchFx.screenShake(matchArena, 0.5);
     }
+    await new Promise(r => setTimeout(r, 800));
+  }
 
-    const onFlipbooksDone = () => {
-      p1Slot.classList.remove('shaking');
-      p2Slot.classList.remove('shaking');
-      p1Slot.classList.add('clash-hit');
-      p2Slot.classList.add('clash-hit');
-      if (vsEl) {
-        vsEl.classList.remove('bursting');
-        void vsEl.offsetWidth;
-        vsEl.classList.add('bursting');
-      }
-      if (typeof MatchFx !== 'undefined') {
-        MatchFx.screenShake(matchArena, 1.3);
-      }
-      if (roundWinner && roundWinner !== 'tie') {
-        const p1Won = roundWinner === p1Name;
-        if (p1Won) p1Player?.classList.add('winner-glow');
-        else p2Player?.classList.add('winner-glow');
-      }
-      setTimeout(resolve, 400);
-    };
+  // Reveal the actual choices
+  p1Reveal.reveal(p1Choice);
+  p2Reveal.reveal(p2Choice);
+  
+  $('#reveal-p1-label').textContent = RPS_LABELS[p1Choice];
+  $('#reveal-p2-label').textContent = RPS_LABELS[p2Choice];
 
-    if (typeof RpsSketch !== 'undefined') {
-      Promise.all([
-        RpsSketch.runRevealFlipbook(p1Slot, p1Choice),
-        RpsSketch.runRevealFlipbook(p2Slot, p2Choice)
-      ]).then(onFlipbooksDone);
-    } else {
-      onFlipbooksDone();
-    }
-  });
+  p1Slot.classList.add('clash-hit');
+  p2Slot.classList.add('clash-hit');
+  
+  if (vsEl) {
+    vsEl.innerHTML = 'VS';
+    vsEl.classList.remove('bursting');
+    void vsEl.offsetWidth;
+    vsEl.classList.add('bursting');
+  }
+
+  if (typeof MatchFx !== 'undefined') {
+    MatchFx.screenShake(matchArena, 1.3);
+  }
+
+  if (roundWinner && roundWinner !== 'tie') {
+    const p1Won = roundWinner === p1Name;
+    if (p1Won) p1Player?.classList.add('winner-glow');
+    else p2Player?.classList.add('winner-glow');
+  }
+
+  await new Promise(r => setTimeout(r, 1200));
 }
 
 function hideChoiceReveal() {
@@ -1816,6 +1928,7 @@ function showPendingMatchEnd() {
   roundResult.classList.add('hidden');
 
   updateMatchRoomId(null);
+  clearActiveHouseMatch();
 
   setTimeout(() => {
     const isWin = data.winner === currentUser.username;
@@ -1838,6 +1951,18 @@ choiceBtns.forEach(btn => {
     }
     sendWs({ action: 'submitChoice', tornId: currentUser.torn_id, roomId: currentRoomId, choice: btn.dataset.choice });
     enableChoices(false);
+
+    // Show "Selection confirmed" message
+    const isP1 = currentUser && (currentP1Id === currentUser.torn_id);
+    const data = {
+      player1Choice: isP1 ? btn.dataset.choice : (matchPlayers.p1.selected ? 'hidden' : null),
+      player2Choice: !isP1 ? btn.dataset.choice : (matchPlayers.p2.selected ? 'hidden' : null),
+      player1Name: matchPlayers.p1.name,
+      player2Name: matchPlayers.p2.name,
+      player1Id: currentP1Id,
+      player2Id: currentP2Id
+    };
+    updateMatchSelectionStatus(data);
   });
 });
 

@@ -526,7 +526,7 @@ button:not(:disabled):hover {
   justify-content: space-between;
   align-items: center;
   position: relative;
-  z-index: 100;
+  z-index: 5000; /* Ensure this is above all other panels */
 }
 
 .user-info {
@@ -534,7 +534,7 @@ button:not(:disabled):hover {
   align-items: center;
   gap: 1rem;
   position: relative;
-  z-index: 700;
+  z-index: 5000;
 }
 
 .top-actions {
@@ -1394,6 +1394,52 @@ button:not(:disabled):hover {
   75% { transform: translateY(5px) rotate(2deg); }
 }
 
+.countdown-3d-text {
+  font-family: 'Caveat', cursive;
+  font-size: 5rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  text-shadow: 
+    0 1px 0 #ccc,
+    0 2px 0 #c9c9c9,
+    0 3px 0 #bbb,
+    0 4px 0 #b9b9b9,
+    0 5px 0 #aaa,
+    0 6px 1px rgba(0,0,0,.1),
+    0 0 5px rgba(0,0,0,.1),
+    0 1px 3px rgba(0,0,0,.3),
+    0 3px 5px rgba(0,0,0,.2),
+    0 5px 10px rgba(0,0,0,.25),
+    0 10px 10px rgba(0,0,0,.2),
+    0 20px 20px rgba(0,0,0,.15);
+  transform: rotateX(20deg) rotateY(-10deg);
+  animation: countdownTextPop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+@keyframes countdownTextPop {
+  0% { transform: scale(0.5) rotateX(40deg); opacity: 0; }
+  100% { transform: scale(1) rotateX(20deg); opacity: 1; }
+}
+
+.reveal-vs.countdown-mode {
+  transform: none;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.choice-reveal-area.countdown-active {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
+}
+
 @keyframes clashHit {
   0% { transform: scale(0.95) rotateZ(-8deg) translateY(0); }
   25% { transform: scale(1.08) rotateZ(4deg) translateY(-6px); }
@@ -1461,6 +1507,16 @@ button:not(:disabled):hover {
   font-weight: 700;
   color: var(--ink-soft);
   transform: rotate(-8deg);
+  min-width: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+}
+
+.doodle-text {
+  font-family: 'Caveat', cursive;
+  text-shadow: 2px 2px 0 rgba(255, 255, 255, 0.8);
 }
 
 .reveal-vs.clash-burst.bursting {
@@ -2251,33 +2307,39 @@ body.match-only .game-main {
 
 /* ── PROFILE DROPDOWN ─────────────────────────── */
 .profile-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 600;
-  margin-top: 0.5rem;
-  min-width: 240px;
-  animation: dropdownSlide 0.15s ease-out;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9000;
+  min-width: 320px;
+  max-width: 90vw;
+  animation: modalFadeIn 0.2s ease-out;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; transform: translate(-50%, -45%); }
+  to { opacity: 1; transform: translate(-50%, -50%); }
 }
 
 .profile-dropdown-card {
   background: var(--paper);
-  border: 2px solid var(--ink);
-  border-radius: 12px;
-  padding: 0.75rem 1rem;
-  box-shadow: 3px 3px 0 var(--ink);
+  border: 3px solid var(--ink);
+  border-radius: 15px 30px 15px 30px/30px 15px 30px 15px;
+  padding: 1.5rem;
+  box-shadow: 0 10px 40px rgba(22, 62, 121, 0.25);
 }
 
 /* ── MATCH HISTORY DROPDOWN ────────────────────── */
 .match-history-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 601;
-  margin-top: 0.5rem;
-  width: 480px;
-  max-width: calc(100vw - 2rem);
-  animation: dropdownSlide 0.15s ease-out;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 9001;
+  width: 500px;
+  max-width: 95vw;
+  animation: modalFadeIn 0.2s ease-out;
 }
 
 .match-history-card {

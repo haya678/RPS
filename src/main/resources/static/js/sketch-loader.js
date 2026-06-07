@@ -130,6 +130,17 @@ const SketchLoader = (function () {
     container.innerHTML = '';
     container.appendChild(wrap);
 
+    /* ── animation state ──────────────────────────────── */
+    let startTime = null;
+    let rafId = null;
+    let destroyed = false;
+
+    function destroy() {
+      destroyed = true;
+      if (rafId) cancelAnimationFrame(rafId);
+      if (wrap.parentNode === container) container.removeChild(wrap);
+    }
+
     /* ── reduced-motion fallback ──────────────────────── */
     if (reducedMotion) {
       arc.setAttribute('stroke-dashoffset', '0');
@@ -139,15 +150,7 @@ const SketchLoader = (function () {
     }
 
     /* ── animation loop ───────────────────────────────── */
-    /*
-     * Phase 0 (0 → 0.5): pencil draws  dashoffset circ → 0
-     * Phase 1 (0.5 → 1): eraser erases dashoffset 0 → circ
-     * cycleDuration in ms
-     */
     const CYCLE = 2000; // ms per full draw+erase cycle
-    let startTime = null;
-    let rafId = null;
-    let destroyed = false;
 
     function positionIcon(el, angleDeg, extraRot) {
       /* angle is in degrees measured clockwise from 12 o'clock */
@@ -198,12 +201,6 @@ const SketchLoader = (function () {
     }
 
     rafId = requestAnimationFrame(tick);
-
-    function destroy() {
-      destroyed = true;
-      if (rafId) cancelAnimationFrame(rafId);
-      if (wrap.parentNode === container) container.removeChild(wrap);
-    }
 
     return { destroy };
   }
