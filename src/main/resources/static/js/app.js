@@ -18,8 +18,6 @@ const matchPlayers = {
   p2: { id: null, name: '', avatar: '' }
 };
 
-let pendingMatchWindow = null;
-let openMatchInNewTab = false;
 let currentMatchRoomId = null;
 let matchOnlyMode = false;
 let directMatchRoomId = null;
@@ -120,7 +118,6 @@ const forfeitMatchBtn = $('#forfeit-match-btn');
 
 // ── WAITING OVERLAY ────────────────────────────────────
 function showMatchTabWaiting(roomId) {
-  if (!matchOnlyMode) return;
   // Don't show the waiting screen if we're playing the house (it starts instantly)
   if (roomId && (roomId.includes('HOUSE') || roomId.includes('BOT'))) return;
   
@@ -240,96 +237,9 @@ function setMatchOnlyMode() {
   document.body.classList.add('match-only');
 }
 
-let lastRoutedRoomId = null;
-let lastTabOpenAttempt = 0;
-
 function returnToHome() {
   resetMatchUI();
-  if (matchOnlyMode) {
-    window.location.href = `${location.origin}${location.pathname}`;
-    return;
-  }
-  gameSectionPanel.classList.add('hidden');
-  showMsg(lobbyMessage, 'Returned to lobby.', false);
-}
-
-function prepareMatchTab(roomId, isHouse = false) {
-  if (pendingMatchWindow && !pendingMatchWindow.closed) {
-    try {
-      pendingMatchWindow.focus();
-      if (roomId) routePendingMatchTab(roomId);
-      openMatchInNewTab = true;
-      return true;
-    } catch (e) {}
-  }
-
-  lastTabOpenAttempt = Date.now();
-  lastRoutedRoomId = roomId || null;
-
-  const targetUrl = roomId
-    ? `${location.origin}${location.pathname}?match=${encodeURIComponent(roomId)}`
-    : `${location.origin}${location.pathname}?match=${isHouse ? 'pending-house' : 'pending'}`;
-
-  try {
-    // Use a specific window name to help some browsers associate the popup with the interaction
-    pendingMatchWindow = window.open(targetUrl, 'rps_match_arena');
-    if (!pendingMatchWindow || pendingMatchWindow.closed || typeof pendingMatchWindow.closed === 'undefined') {
-      pendingMatchWindow = null;
-      openMatchInNewTab = false;
-      showMsg(lobbyMessage, 'Popup blocked. The match will open in this tab.', true);
-      return false;
-    }
-    openMatchInNewTab = true;
-    return true;
-  } catch (error) {
-    pendingMatchWindow = null;
-    openMatchInNewTab = false;
-    showMsg(lobbyMessage, 'Popup blocked. The match will open in this tab.', true);
-    return false;
-  }
-}
-
-function routePendingMatchTab(roomId, isHouse = false) {
-  if (!pendingMatchWindow || pendingMatchWindow.closed) {
-    pendingMatchWindow = null;
-    openMatchInNewTab = false;
-    return false;
-  }
-  try {
-    const houseParam = isHouse ? '&house=true' : '';
-    const targetUrl = `${location.origin}${location.pathname}?match=${encodeURIComponent(roomId)}${houseParam}`;
-    // If already on the right URL, just focus
-    if (pendingMatchWindow.location.href.includes(`?match=${roomId}`)) {
-       try { pendingMatchWindow.focus(); } catch(e) {}
-       lastRoutedRoomId = roomId;
-       return true;
-    }
-    pendingMatchWindow.location.href = targetUrl;
-    try { pendingMatchWindow.focus(); } catch(e) {}
-    lastRoutedRoomId = roomId;
-    return true;
-  } catch (e) {
-    // Cross-origin or other error
-    lastRoutedRoomId = roomId; // Still mark as routed if we tried
-    return true; // Assume it's okay or will be handled by the tab itself
-  }
-}
-
-function clearPendingMatchTab() {
-  if (pendingMatchWindow && !pendingMatchWindow.closed) {
-    pendingMatchWindow.close();
-  }
-  pendingMatchWindow = null;
-  openMatchInNewTab = false;
-}
-
-function safeOpenMatchTab(roomId) {
-  if (openMatchInNewTab && pendingMatchWindow && !pendingMatchWindow.closed) {
-    return routePendingMatchTab(roomId);
-  } else {
-    clearPendingMatchTab();
-    return false;
-  }
+  window.location.href = `${location.origin}${location.pathname}`;
 }
 
 function updateMatchRoomId(roomId) {
@@ -716,14 +626,11 @@ function handleWsMessage(data) {
       
       const savedActiveRoom = localStorage.getItem('activeMatchRoomId');
       if (savedActiveRoom && !matchOnlyMode) {
-        returnMatchOverlay?.classList.remove('hidden');
+        setMatchOnlyMode();
+        history.replaceState(null, '', `?match=${encodeURIComponent(savedActiveRoom)}`);
       }
 
       if (matchOnlyMode && directMatchRoomId) {
-        if (directMatchRoomId === 'pending') {
-          showMatchTabWaiting('Waiting for room...');
-          break;
-        }
         sendWs({
           action: 'joinRoom',
           tornId: currentUser.torn_id,
@@ -732,8 +639,7 @@ function handleWsMessage(data) {
         });
         
         // Don't show the waiting screen if we're playing the house
-        const isHouse = (new URLSearchParams(location.search)).get('house') === 'true';
-        if (!isHouse && directMatchRoomId !== 'pending-house' && !directMatchRoomId.includes('HOUSE') && !directMatchRoomId.includes('BOT')) {
+        if (!directMatchRoomId.includes('HOUSE') && !directMatchRoomId.includes('BOT')) {
           showMatchTabWaiting(directMatchRoomId);
         }
       }
@@ -764,44 +670,19 @@ function handleWsMessage(data) {
     case 'roomCreated':
       showWaitingRoom(data);
       if ($('#room-id-display')) $('#room-id-display').textContent = data.roomId;
-      // Only route if we specifically prepared a tab and it's still pending
-      if (openMatchInNewTab && pendingMatchWindow) {
-        const isHouseMatch = lastRoomConfig?.playWithBot === true;
-        const success = routePendingMatchTab(data.roomId, isHouseMatch);
-        if (success) {
-          showMsg(lobbyMessage, 'The room is open in a new tab. Keep this page for the lobby.', false);
-        }
-      }
       break;
 
     case 'matchStarted':
       hideMatchTabWaiting();
       hideWaitingRoom();
       
-      let tabRouted = false;
-      if (openMatchInNewTab && pendingMatchWindow) {
-        const isHouseMatch = data.player2Id === 'BOT_BAINING';
-        tabRouted = routePendingMatchTab(data.roomId, isHouseMatch);
-        if (tabRouted) {
-          showMsg(lobbyMessage, 'Match opened in a new tab. Continue there while this page stays as lobby.', false);
-          // Now we can nullify it since we've verified it's routed and focused
-          pendingMatchWindow = null;
-          openMatchInNewTab = false;
-        }
-      } else if (data.roomId === lastRoutedRoomId) {
-        tabRouted = true;
-      }
-
       updateMatchRoomId(data.roomId);
 
-      // If we are on the homepage (lobby)
       if (!matchOnlyMode) {
-        hideWaitingRoom();
-        returnMatchOverlay?.classList.remove('hidden');
-        return;
+        setMatchOnlyMode();
+        history.replaceState(null, '', `?match=${encodeURIComponent(data.roomId)}`);
       }
       
-      returnMatchOverlay?.classList.add('hidden');
       currentRoomId = data.roomId;
       currentWinsRequired = data.winsRequired || 2;
       currentMatchBet = asNumber(data.betAmount);
@@ -857,27 +738,14 @@ function handleWsMessage(data) {
       break;
 
     case 'matchResumed':
-      let resumedInTab = false;
-      if (openMatchInNewTab && pendingMatchWindow) {
-        const isHouseMatch = data.player2Id === 'BOT_BAINING';
-        resumedInTab = routePendingMatchTab(data.roomId, isHouseMatch);
-        if (resumedInTab) {
-          showMsg(lobbyMessage, 'Resuming match in the new tab. Stay here for the lobby.', false);
-          pendingMatchWindow = null;
-          openMatchInNewTab = false;
-          return;
-        }
-      }
-      
       hideWaitingRoom();
       updateMatchRoomId(data.roomId);
 
       if (!matchOnlyMode) {
-        returnMatchOverlay?.classList.remove('hidden');
-        return;
+        setMatchOnlyMode();
+        history.replaceState(null, '', `?match=${encodeURIComponent(data.roomId)}`);
       }
       
-      returnMatchOverlay?.classList.add('hidden');
       currentRoomId = data.roomId;
       currentWinsRequired = data.winsRequired || 2;
       currentMatchBet = asNumber(data.betAmount);
@@ -1048,7 +916,6 @@ function handleWsMessage(data) {
       hideMatchTabWaiting();
       showMsg(lobbyMessage, data.message || 'Room closed.', false);
       updateMatchRoomId(null);
-      returnMatchOverlay?.classList.add('hidden');
       currentRoomId = null;
       gameSectionPanel.classList.add('hidden');
       roomChatSection.classList.add('hidden');
@@ -1063,7 +930,6 @@ function handleWsMessage(data) {
     case 'error':
       showMsg(lobbyMessage, data.message, true);
       enableChoices(true);
-      clearPendingMatchTab();
       break;
   }
 }
@@ -1102,7 +968,6 @@ function escapeHtml(text) {
 }
 
 function joinPublicRoom(roomId) {
-  prepareMatchTab();
   sendWs({
     action: 'joinRoom',
     tornId: currentUser.torn_id,
@@ -1250,22 +1115,17 @@ withdrawBtn.addEventListener('click', async () => {
 
 // ── ROOMS ──────────────────────────────────────────────
 createRoomBtn.addEventListener('click', () => {
-  const tabOpenSuccess = prepareMatchTab();
-  
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     showMsg(lobbyMessage, 'Connecting... wait a moment and try again.', true);
-    if (tabOpenSuccess) clearPendingMatchTab();
     return;
   }
   if (!currentUser?.torn_id) {
     showMsg(lobbyMessage, 'Please log in first.', true);
-    if (tabOpenSuccess) clearPendingMatchTab();
     return;
   }
   const bet = parseInt(betInput.value, 10);
   if (!bet || bet <= 0) {
     showMsg(lobbyMessage, 'Bet must be a positive whole number.', true);
-    if (tabOpenSuccess) clearPendingMatchTab();
     return;
   }
 
@@ -1287,22 +1147,17 @@ createRoomBtn.addEventListener('click', () => {
 });
 
 playBotBtn?.addEventListener('click', () => {
-  const tabOpenSuccess = prepareMatchTab(null, true);
-
   if (!ws || ws.readyState !== WebSocket.OPEN) {
     showMsg(lobbyMessage, 'Connecting... wait a moment and try again.', true);
-    if (tabOpenSuccess) clearPendingMatchTab();
     return;
   }
   if (!currentUser?.torn_id) {
     showMsg(lobbyMessage, 'Please log in first.', true);
-    if (tabOpenSuccess) clearPendingMatchTab();
     return;
   }
   const bet = parseInt(betInput.value, 10);
   if (!bet || bet <= 0) {
     showMsg(lobbyMessage, 'Bet must be a positive whole number.', true);
-    if (tabOpenSuccess) clearPendingMatchTab();
     return;
   }
 
@@ -1347,17 +1202,13 @@ copyRoomCodeBtn?.addEventListener('click', async () => {
 });
 
 joinRoomBtn.addEventListener('click', () => {
-  const tabOpenSuccess = prepareMatchTab();
-
   if (waitingRoomPanel && !waitingRoomPanel.classList.contains('hidden')) {
     showMsg(lobbyMessage, 'Cancel your open room before joining another.', true);
-    if (tabOpenSuccess) clearPendingMatchTab();
     return;
   }
   const code = roomCodeInput.value.trim();
   if (!code) {
     showMsg(lobbyMessage, 'Enter a room code.', true);
-    if (tabOpenSuccess) clearPendingMatchTab();
     return;
   }
 
@@ -1398,7 +1249,8 @@ matchHistoryModal?.addEventListener('click', (e) => {
 reopenMatchTabBtn?.addEventListener('click', () => {
   const activeRoomId = localStorage.getItem('activeMatchRoomId');
   if (activeRoomId) {
-    prepareMatchTab(activeRoomId);
+    setMatchOnlyMode();
+    history.replaceState(null, '', `?match=${encodeURIComponent(activeRoomId)}`);
   }
 });
 
@@ -1900,9 +1752,6 @@ function playAgain() {
     return;
   }
   
-  // Prepare a tab for the rematch
-  prepareMatchTab();
-
   resetMatchUI();
   gameSectionPanel.classList.add('hidden');
   syncNotebookDoodles();
@@ -1939,7 +1788,6 @@ function showPendingMatchEnd() {
   roundResult.classList.add('hidden');
 
   updateMatchRoomId(null);
-  returnMatchOverlay?.classList.add('hidden');
 
   setTimeout(() => {
     const isWin = data.winner === currentUser.username;
@@ -1998,15 +1846,9 @@ function setAutoLoginLoading(loading) {
 
 (async () => {
   const urlParams = new URLSearchParams(location.search);
-  const isHouseMatch = urlParams.get('house') === 'true';
   directMatchRoomId = urlParams.get('match');
   if (directMatchRoomId) {
-    matchOnlyMode = true;
-    document.body.classList.add('match-only');
-    if (directMatchRoomId === 'pending' && !isHouseMatch) {
-      showMatchTabWaiting('Connecting to room...');
-    }
-    // if pending-house or house=true, we don't show the waiting screen
+    setMatchOnlyMode();
   }
 
   // Mount SketchLoader into auto-login loading screen early
