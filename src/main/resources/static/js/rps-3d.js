@@ -25,14 +25,15 @@ const Rps3D = (() => {
     `,
     paper: `
       <!-- Paper Shards (Konan style) -->
-      <path d="M20 40 L45 25 L65 35 L40 50 Z" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2"/>
-      <path d="M55 20 L85 15 L90 45 L60 50 Z" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2"/>
-      <path d="M30 65 L60 60 L75 85 L45 90 Z" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2"/>
-      <!-- Fluttering butterflies -->
-      <path d="M15 20 Q18 10 22 15 Q25 20 20 25 Q15 30 12 25 Q10 20 15 20" fill="${BLUE_LIGHT}" stroke="${BLUE_DARK}" stroke-width="1"/>
-      <path d="M85 75 Q88 65 92 70 Q95 75 90 80 Q85 85 82 80 Q80 75 85 75" fill="${BLUE_LIGHT}" stroke="${BLUE_DARK}" stroke-width="1"/>
-      <!-- Motion lines -->
-      <path d="M40 30 L55 20 M60 60 L80 55" fill="none" stroke="${BLUE_MID}" stroke-width="1" stroke-dasharray="3 2"/>
+      <path d="M25 45 L50 30 L70 40 L45 55 Z" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2"/>
+      <path d="M60 25 L90 20 L95 50 L65 55 Z" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2"/>
+      <path d="M35 70 L65 65 L80 90 L50 95 Z" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2"/>
+      <!-- Fluttering paper butterflies -->
+      <path d="M12 25 Q15 15 20 20 Q25 25 15 30 Q10 25 12 25" fill="${BLUE_LIGHT}" stroke="${BLUE_DARK}" stroke-width="1"/>
+      <path d="M85 75 Q90 65 95 70 Q100 75 90 85 Q80 75 85 75" fill="${BLUE_LIGHT}" stroke="${BLUE_DARK}" stroke-width="1"/>
+      <path d="M45 15 Q50 5 55 10 Q60 15 50 20 Q40 15 45 15" fill="${BLUE_LIGHT}" stroke="${BLUE_DARK}" stroke-width="0.8"/>
+      <!-- Ink swirls -->
+      <path d="M30 35 Q45 25 60 30 M20 60 Q40 55 55 65" fill="none" stroke="${BLUE_MID}" stroke-width="1" stroke-dasharray="3 2"/>
     `,
     scissors: `
       <!-- Origami Blades (Kartana style) -->
@@ -42,9 +43,10 @@ const Rps3D = (() => {
       <path d="M54 35 L85 25 L80 60 L55 45" fill="${WHITE}" stroke="${BLUE_MID}" stroke-width="2"/>
       <!-- Crossguard detail -->
       <rect x="42" y="55" width="16" height="4" fill="${BLUE_DARK}"/>
-      <!-- Sharp edges -->
+      <!-- Sharp edges and gleam -->
       <path d="M20 30 L40 40 M80 30 L60 40" fill="none" stroke="${BLUE_LIGHT}" stroke-width="1.5"/>
       <path d="M48 15 L48 50 M52 15 L52 50" fill="none" stroke="${BLUE_DARK}" stroke-width="0.8"/>
+      <path d="M49 10 L49 55" fill="none" stroke="${WHITE}" stroke-width="0.5"/>
     `,
     fist: `
       <!-- The Thing style fist for countdown -->
