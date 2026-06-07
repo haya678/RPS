@@ -932,17 +932,10 @@ function handleWsMessage(data) {
       animateChoiceReveal(
         data.player1, data.player2,
         data.player1Choice, data.player2Choice,
-        data.roundWinner
+        data.roundWinner,
+        data.player1Wins,
+        data.player2Wins
       ).then(() => {
-        $('#p1-score').textContent = data.player1Wins;
-        $('#p2-score').textContent = data.player2Wins;
-        if (data.player1Wins > prevP1 && typeof MatchFx !== 'undefined') {
-          MatchFx.popScore($('#p1-score'));
-        }
-        if (data.player2Wins > prevP2 && typeof MatchFx !== 'undefined') {
-          MatchFx.popScore($('#p2-score'));
-        }
-
         let resultText = `${data.player1}: ${data.player1Choice.toUpperCase()} vs ${data.player2}: ${data.player2Choice.toUpperCase()} - `;
         const iWonRound = data.roundWinner === currentUser.username;
         const iLostRound = data.roundWinner && data.roundWinner !== 'tie' && !iWonRound;
@@ -1720,7 +1713,7 @@ function openProfileModal(username, data) {
 // ── CHOICES ────────────────────────────────────────────
 const RPS_LABELS = { rock: 'Rock', paper: 'Paper', scissors: 'Scissors' };
 
-async function animateChoiceReveal(p1Name, p2Name, p1Choice, p2Choice, roundWinner) {
+async function animateChoiceReveal(p1Name, p2Name, p1Choice, p2Choice, roundWinner, p1Wins, p2Wins) {
   const p1Slot = $('#reveal-p1-slot');
   const p2Slot = $('#reveal-p2-slot');
   const p1Player = p1Slot?.closest('.reveal-player');
@@ -1765,6 +1758,20 @@ async function animateChoiceReveal(p1Name, p2Name, p1Choice, p2Choice, roundWinn
   p1Reveal.reveal(p1Choice);
   p2Reveal.reveal(p2Choice);
   
+  // Update scoreboard immediately upon reveal
+  if (p1Wins !== undefined && p2Wins !== undefined) {
+    const s1 = $('#p1-score');
+    const s2 = $('#p2-score');
+    const prev1 = parseInt(s1.textContent, 10) || 0;
+    const prev2 = parseInt(s2.textContent, 10) || 0;
+    s1.textContent = p1Wins;
+    s2.textContent = p2Wins;
+    if (typeof MatchFx !== 'undefined') {
+      if (p1Wins > prev1) MatchFx.popScore(s1);
+      if (p2Wins > prev2) MatchFx.popScore(s2);
+    }
+  }
+
   $('#reveal-p1-label').textContent = RPS_LABELS[p1Choice];
   $('#reveal-p2-label').textContent = RPS_LABELS[p2Choice];
 
