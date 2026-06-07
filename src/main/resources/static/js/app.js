@@ -640,30 +640,39 @@ function hideWaitingRoom() {
 function connectWS() {
   const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
   ws = new WebSocket(`${protocol}//${location.host}/ws/game`);
+  AppLogger.info('WS', 'Connecting to WebSocket...');
 
   ws.onopen = () => {
-    console.log('WebSocket connected');
+    AppLogger.info('WS', 'WebSocket connected');
     identifyWs();
     requestPublicRooms();
   };
 
-  ws.onmessage = (event) => {
-    const data = JSON.parse(event.data);
-    handleWsMessage(data);
+  ws.onmessage = async (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      AppLogger.info('WS_IN', `Received: ${data.action}`, data);
+      await handleWsMessage(data);
+    } catch (err) {
+      AppLogger.error('WS_MSG', 'Error processing WS message', err);
+    }
   };
 
-  ws.onclose = () => {
-    console.log('WebSocket disconnected');
+  ws.onclose = (event) => {
+    AppLogger.warn('WS', `WebSocket closed (code: ${event.code})`);
     wsIdentified = false;
     setTimeout(connectWS, 3000);
   };
 
-  ws.onerror = (err) => console.error('WebSocket error:', err);
+  ws.onerror = (err) => AppLogger.error('WS', 'WebSocket error', err);
 }
 
 function sendWs(data) {
   if (ws && ws.readyState === WebSocket.OPEN) {
+    AppLogger.info('WS_OUT', `Sending: ${data.action}`, data);
     ws.send(JSON.stringify(data));
+  } else {
+    AppLogger.error('WS_OUT', `Failed to send (WS not ready): ${data?.action}`);
   }
 }
 
@@ -903,12 +912,6 @@ async function handleWsMessage(data) {
       break;
   }
 }
-
-// Update the WS onmessage to use the async function
-ws.onmessage = (event) => {
-  const data = JSON.parse(event.data);
-  handleWsMessage(data);
-};
 
 function renderPublicRooms(rooms) {
   if (!rooms.length) {
