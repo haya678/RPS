@@ -8,23 +8,36 @@ const RpsSketch = (() => {
 
   const FINAL = {
     rock: `<svg class="rps-sketch" xmlns="${SVG_NS}" viewBox="0 0 80 80" aria-hidden="true">
-      <path d="M18 42 Q14 28 26 22 Q38 16 48 24 Q56 18 62 28 Q68 38 62 50 Q58 62 44 64 L36 68 Q28 66 22 58 Q16 52 18 42Z" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M26 38 L30 52 M34 36 L36 54 M42 34 L42 56 M50 36 L48 54" fill="none" stroke="${INK2}" stroke-width="1.6" stroke-linecap="round"/>
-      <path d="M20 48 Q24 56 32 58" fill="none" stroke="${INK}" stroke-width="1.4" stroke-linecap="round"/>
+      <!-- Wrist/Hand base -->
+      <path d="M32 68 Q40 64 48 68" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>
+      <!-- Fist outline -->
+      <path d="M28 62 Q22 55 24 42 Q26 30 36 26 Q46 22 56 28 Q66 35 64 50 Q62 62 52 65 Q42 68 32 62 Z" fill="rgba(240,246,255,0.9)" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Knuckles/Fingers -->
+      <path d="M36 26 Q38 38 36 48 M46 24 Q48 36 46 46 M56 28 Q58 40 56 50" fill="none" stroke="${INK2}" stroke-width="1.8" stroke-linecap="round" opacity="0.8"/>
+      <!-- Thumb curled over -->
+      <path d="M24 42 Q32 48 44 46" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/>
     </svg>`,
     paper: `<svg class="rps-sketch" xmlns="${SVG_NS}" viewBox="0 0 80 80" aria-hidden="true">
-      <path d="M22 58 L22 28 Q22 18 32 16 L52 14 Q62 14 64 24 L66 48 Q66 58 56 60 L34 64 Q24 64 22 58Z" fill="rgba(240,246,255,0.9)" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M30 24 L30 56 M38 22 L38 58 M46 22 L46 56 M54 24 L54 52" fill="none" stroke="${INK2}" stroke-width="1.5" stroke-linecap="round"/>
-      <path d="M18 32 Q20 26 26 24" fill="none" stroke="${INK}" stroke-width="1.3" stroke-linecap="round"/>
+      <!-- Wrist -->
+      <path d="M35 72 Q40 70 45 72" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>
+      <!-- Palm and fingers -->
+      <path d="M32 65 Q28 58 30 48 L26 22 Q26 16 32 16 Q38 16 38 24 L38 42 M38 42 L42 12 Q42 6 48 6 Q54 6 54 14 L54 42 M54 42 L58 16 Q58 10 64 10 Q70 10 70 18 L70 45 M70 45 L74 30 Q74 24 80 24 Q84 24 84 34 L80 58 Q78 68 60 72 Q45 74 32 65 Z" fill="rgba(240,246,255,0.9)" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Thumb -->
+      <path d="M30 48 Q22 42 16 46 Q10 50 18 56 Q25 62 32 60" fill="rgba(240,246,255,0.9)" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
     </svg>`,
     scissors: `<svg class="rps-sketch" xmlns="${SVG_NS}" viewBox="0 0 80 80" aria-hidden="true">
-      <path d="M22 58 Q18 50 20 42 Q24 34 32 30 L38 28 Q48 26 54 32 Q60 38 58 48 Q56 58 46 64 Q36 68 28 64 Q22 62 22 58Z" fill="rgba(240,246,255,0.88)" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M32 30 Q28 16 34 10 Q38 6 42 12 L40 30" fill="rgba(240,246,255,0.88)" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M40 30 Q44 14 50 8 Q56 6 60 14 L54 32" fill="rgba(240,246,255,0.88)" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M26 46 Q32 40 40 42 Q48 40 54 46" fill="none" stroke="${INK2}" stroke-width="1.5" stroke-linecap="round"/>
-      <path d="M30 52 Q36 48 42 50 Q48 52 52 48" fill="none" stroke="${INK2}" stroke-width="1.4" stroke-linecap="round"/>
-      <path d="M34 36 L38 22" fill="none" stroke="${INK2}" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/>
-      <path d="M42 34 L48 20" fill="none" stroke="${INK2}" stroke-width="1.2" stroke-linecap="round" opacity="0.55"/>
+      <!-- Wrist -->
+      <path d="M35 72 Q40 70 45 72" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>
+      <!-- Base of hand with folded fingers -->
+      <path d="M32 65 Q28 58 30 48 Q40 42 55 45 Q65 48 68 58 Q70 68 55 72 Q42 74 32 65 Z" fill="rgba(240,246,255,0.9)" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Index Finger (V) -->
+      <path d="M38 42 L44 14 Q46 8 52 10 Q58 12 54 20 L48 45" fill="rgba(240,246,255,0.9)" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Middle Finger (V) -->
+      <path d="M52 45 L66 22 Q68 16 74 18 Q80 20 76 28 L62 52" fill="rgba(240,246,255,0.9)" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <!-- Thumb folded -->
+      <path d="M30 48 Q24 50 26 58 Q28 62 35 58" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/>
+      <!-- Lines for other folded fingers -->
+      <path d="M50 48 Q55 52 58 58 M58 52 Q62 55 64 60" fill="none" stroke="${INK2}" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
     </svg>`
   };
 
@@ -35,9 +48,9 @@ const RpsSketch = (() => {
   </svg>`;
 
   const CYCLE = {
-    rock: ['paper', 'scissors', 'rock', 'paper', 'rock'],
-    paper: ['scissors', 'rock', 'paper', 'rock', 'paper'],
-    scissors: ['rock', 'paper', 'scissors', 'paper', 'scissors']
+    rock: ['paper', 'scissors', 'rock', 'paper', 'scissors', 'rock'],
+    paper: ['scissors', 'rock', 'paper', 'scissors', 'rock', 'paper'],
+    scissors: ['rock', 'paper', 'scissors', 'rock', 'paper', 'scissors']
   };
 
   function hasSketch(choice) {

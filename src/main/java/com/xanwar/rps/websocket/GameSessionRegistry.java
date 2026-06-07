@@ -93,13 +93,30 @@ public class GameSessionRegistry {
     }
 
     public void sendToRoom(GameRoom room, JsonNode payload) {
-        // Broadcast to all sessions explicitly bound to this room ID
-        sendToRoomId(room.getRoomId(), payload);
-        
-        // ALSO broadcast to all sessions of the players involved (e.g. their lobby tabs)
-        sendToUser(room.getPlayer1Id(), payload);
+        java.util.Set<String> targetSessionIds = new java.util.HashSet<>();
+
+        // Collect sessions explicitly bound to this room ID
+        Set<String> roomSessions = roomToSessionIds.get(room.getRoomId());
+        if (roomSessions != null) {
+            targetSessionIds.addAll(roomSessions);
+        }
+
+        // Collect sessions of the players involved
+        collectUserSessions(room.getPlayer1Id(), targetSessionIds);
         if (room.getPlayer2Id() != null) {
-            sendToUser(room.getPlayer2Id(), payload);
+            collectUserSessions(room.getPlayer2Id(), targetSessionIds);
+        }
+
+        // Send to each unique session exactly once
+        for (String sessionId : targetSessionIds) {
+            sendToSessionId(sessionId, payload);
+        }
+    }
+
+    private void collectUserSessions(String tornId, Set<String> targetSessionIds) {
+        Set<String> userSessions = tornIdToSessionIds.get(tornId);
+        if (userSessions != null) {
+            targetSessionIds.addAll(userSessions);
         }
     }
 

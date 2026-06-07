@@ -1613,19 +1613,23 @@ function animateChoiceReveal(p1Name, p2Name, p1Choice, p2Choice, roundWinner) {
     $('#reveal-p1-label').textContent = '';
     $('#reveal-p2-label').textContent = '';
 
-    p1Slot.classList.remove('clash-hit');
-    p2Slot.classList.remove('clash-hit');
+    p1Slot.classList.remove('clash-hit', 'shaking');
+    p2Slot.classList.remove('clash-hit', 'shaking');
     p1Player?.classList.remove('winner-glow');
     p2Player?.classList.remove('winner-glow');
     choiceReveal.classList.remove('hidden', 'reveal-active');
     void choiceReveal.offsetWidth;
     choiceReveal.classList.add('reveal-active');
+    p1Slot.classList.add('shaking');
+    p2Slot.classList.add('shaking');
 
     if (typeof MatchFx !== 'undefined') {
       MatchFx.playReveal();
     }
 
     const onFlipbooksDone = () => {
+      p1Slot.classList.remove('shaking');
+      p2Slot.classList.remove('shaking');
       p1Slot.classList.add('clash-hit');
       p2Slot.classList.add('clash-hit');
       if (vsEl) {
