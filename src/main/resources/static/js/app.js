@@ -1795,7 +1795,8 @@ async function animateChoiceReveal(p1Name, p2Name, p1Choice, p2Choice, roundWinn
     else p2Player?.classList.add('winner-glow');
   }
 
-  await new Promise(r => setTimeout(r, 1200));
+  // Reduced wait time after reveal
+  await new Promise(r => setTimeout(r, 800));
 }
 
 function hideChoiceReveal() {

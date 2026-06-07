@@ -1,220 +1,127 @@
 /**
- * 3D Illustrated hands using Three.js.
- * Converts detailed SVG illustrations into thin 3D "paper" models with clean outlines.
+ * 2D Anime Character-themed Drawing animations.
+ * Rock: The Thing (stony fist)
+ * Paper: Konan (paper sheets)
+ * Scissors: Kartana (origami blades)
  */
 const Rps3D = (() => {
-  const INK = 0x0a295c;
-  const PAPER = 0xffffff;
+  const BLUE_DARK = '#0a295c';
+  const BLUE_MID = '#3d69ad';
+  const BLUE_LIGHT = '#aecbf7';
+  const WHITE = '#ffffff';
 
   const PATHS = {
-    rock: [
-      // Anime fist outline: Tense, slightly angular
-      'M30 75 Q20 70 20 55 Q20 40 35 35 Q40 30 55 30 Q70 30 75 40 Q80 50 80 60 Q80 75 65 80 Q50 85 30 75 Z',
-      // Thumb tucked over: Elegant curve
-      'M22 55 Q35 50 45 55 Q55 60 50 75',
-      // Knuckle definitions: Sharp stylized lines
-      'M38 32 L38 45',
-      'M52 30 L52 43',
-      'M66 32 L66 45'
-    ],
-    paper: [
-      // Anime open hand: Slender fingers, elegant taper
-      'M35 85 Q25 80 28 65 L20 35 Q20 28 28 28 Q36 28 35 45 L38 20 Q38 12 46 12 Q54 12 52 45 L58 15 Q58 8 66 8 Q74 8 72 45 L80 25 Q82 18 88 22 Q94 26 88 50 L75 80 Q65 90 45 88 Q38 87 35 85 Z',
-      // Palm creases
-      'M40 65 Q50 62 65 68',
-      'M45 75 Q55 72 70 78'
-    ],
-    scissors: [
-      // Anime scissors: Dynamic "V" sign
-      'M35 85 Q25 80 28 65 Q35 60 45 60 L40 25 Q40 18 48 18 Q56 18 55 55 L75 25 Q78 18 86 22 Q94 26 82 55 L70 75 Q65 85 45 88 Q38 87 35 85 Z',
-      // Folded fingers detail
-      'M30 65 Q45 62 55 68',
-      // Thumb tuck
-      'M32 75 Q40 70 48 75'
-    ],
-    fist: [
-      'M30 75 Q20 70 20 55 Q20 40 35 35 Q40 30 55 30 Q70 30 75 40 Q80 50 80 60 Q80 75 65 80 Q50 85 30 75 Z',
-      'M22 55 Q35 50 45 55 Q55 60 50 75',
-      'M38 32 L38 45',
-      'M52 30 L52 43',
-      'M66 32 L66 45'
-    ]
+    rock: `
+      <!-- Stony Fist (The Thing style) -->
+      <path d="M30 75 Q20 70 18 50 Q18 35 30 30 Q35 25 50 25 Q65 25 75 35 Q82 45 82 60 Q82 75 65 82 Q50 88 30 75 Z" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2.5"/>
+      <!-- Rocky textures -->
+      <path d="M25 45 L35 48 M45 35 L48 45 M60 30 L58 42 M72 40 L65 48" fill="none" stroke="${BLUE_MID}" stroke-width="1.5"/>
+      <path d="M35 70 Q50 68 70 72" fill="none" stroke="${BLUE_MID}" stroke-width="1.5"/>
+      <!-- Knuckles -->
+      <path d="M38 26 L38 38 M52 25 L52 38 M66 28 L66 40" fill="none" stroke="${BLUE_DARK}" stroke-width="2"/>
+      <path d="M22 55 Q35 50 45 55 Q55 60 50 78" fill="none" stroke="${BLUE_DARK}" stroke-width="2.5"/>
+    `,
+    paper: `
+      <!-- Paper Sheets (Konan style) -->
+      <rect x="25" y="25" width="30" height="40" transform="rotate(-15 40 45)" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2"/>
+      <rect x="45" y="20" width="30" height="40" transform="rotate(10 60 40)" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2"/>
+      <rect x="35" y="45" width="30" height="40" transform="rotate(-5 50 65)" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2"/>
+      <!-- Sheet details -->
+      <path d="M30 35 L50 35 M55 30 L75 30 M40 60 L60 60" fill="none" stroke="${BLUE_LIGHT}" stroke-width="1"/>
+      <path d="M20 70 Q30 85 50 80" fill="none" stroke="${BLUE_MID}" stroke-width="1.5" stroke-dasharray="4 2"/>
+      <path d="M80 30 Q90 45 85 60" fill="none" stroke="${BLUE_MID}" stroke-width="1.5" stroke-dasharray="4 2"/>
+    `,
+    scissors: `
+      <!-- Origami Blades (Kartana style) -->
+      <path d="M50 85 L35 60 L45 20 L55 20 L65 60 Z" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2.5"/>
+      <path d="M45 20 L20 15 L25 45 L45 35" fill="${WHITE}" stroke="${BLUE_MID}" stroke-width="2"/>
+      <path d="M55 20 L80 15 L75 45 L55 35" fill="${WHITE}" stroke="${BLUE_MID}" stroke-width="2"/>
+      <!-- Blade edges -->
+      <path d="M48 25 L48 75 M52 25 L52 75" fill="none" stroke="${BLUE_LIGHT}" stroke-width="1"/>
+      <path d="M30 20 L40 25 M70 20 L60 25" fill="none" stroke="${BLUE_DARK}" stroke-width="1.5"/>
+    `,
+    fist: `
+      <!-- Stony Fist (Countdown) -->
+      <path d="M30 75 Q20 70 18 50 Q18 35 30 30 Q35 25 50 25 Q65 25 75 35 Q82 45 82 60 Q82 75 65 82 Q50 88 30 75 Z" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2.5"/>
+      <path d="M25 45 L35 48 M45 35 L48 45 M60 30 L58 42 M72 40 L65 48" fill="none" stroke="${BLUE_MID}" stroke-width="1.5"/>
+      <path d="M22 55 Q35 50 45 55 Q55 60 50 78" fill="none" stroke="${BLUE_DARK}" stroke-width="2.5"/>
+    `
   };
 
-  function create3DHand(choice) {
-    const group = new THREE.Group();
-    const loader = new THREE.SVGLoader();
-    
-    const pathsToProcess = PATHS[choice] || PATHS.rock;
-    
-    pathsToProcess.forEach(pathStr => {
-      const pathData = loader.parse(` <svg xmlns="http://www.w3.org/2000/svg"><path d="${pathStr}" /></svg>`).paths[0];
-      const shapes = THREE.SVGLoader.createShapes(pathData);
-      
-      shapes.forEach(shape => {
-        // Very thin extrusion to look like a "drawing on paper"
-        const extrudeSettings = {
-          steps: 1,
-          depth: 0.5,
-          bevelEnabled: false
-        };
-
-        const geometry = new THREE.ExtrudeGeometry(shape, extrudeSettings);
-        geometry.center();
-        
-        const material = new THREE.MeshToonMaterial({ 
-          color: PAPER,
-          side: THREE.DoubleSide
-        });
-
-        const mesh = new THREE.Mesh(geometry, material);
-        
-        // Clean solid outline using a slightly larger mesh
-        const outlineMaterial = new THREE.MeshBasicMaterial({ 
-          color: INK,
-          side: THREE.BackSide
-        });
-        const outline = new THREE.Mesh(geometry, outlineMaterial);
-        outline.scale.multiplyScalar(1.05);
-
-        group.add(mesh);
-        group.add(outline);
-      });
-    });
-
-    group.rotation.x = Math.PI;
-    return group;
+  function createSvg(choice) {
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 100 100');
+    svg.style.width = '100%';
+    svg.style.height = '100%';
+    svg.innerHTML = PATHS[choice] || PATHS.rock;
+    return svg;
   }
 
   function init3DButton(container, choice) {
-    const width = 80;
-    const height = 80;
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, 1, 1, 1000);
-    camera.position.z = 80;
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(window.devicePixelRatio);
     container.innerHTML = '';
-    container.appendChild(renderer.domElement);
-
-    const light = new THREE.AmbientLight(0xffffff, 1);
-    scene.add(light);
-
-    const hand = create3DHand(choice);
-    scene.add(hand);
-
-    function animate() {
-      if (!container.isConnected) return;
-      requestAnimationFrame(animate);
-      hand.rotation.y += 0.03;
-      hand.rotation.z = Math.sin(Date.now() * 0.002) * 0.15;
-      renderer.render(scene, camera);
-    }
-    animate();
+    const svg = createSvg(choice);
+    svg.style.transition = 'transform 0.3s ease';
+    container.appendChild(svg);
+    
+    container.addEventListener('mouseenter', () => svg.style.transform = 'scale(1.1) rotate(5deg)');
+    container.addEventListener('mouseleave', () => svg.style.transform = 'scale(1) rotate(0deg)');
   }
 
-  function init3DCountdown(container, text, color = 0x0a295c) {
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-
+  function init3DCountdown(container, text, color = '#0a295c') {
     container.innerHTML = '';
     const div = document.createElement('div');
-    div.className = 'countdown-3d-text drawing-text';
+    div.className = 'countdown-2d-text drawing-text';
     div.textContent = text;
-    div.style.color = '#' + color.toString(16).padStart(6, '0');
+    div.style.color = color;
     container.appendChild(div);
 
-    div.style.transform = 'scale(0) rotate(-5deg)';
+    div.style.transform = 'scale(0) rotate(-10deg)';
     div.style.opacity = '0';
-    div.style.transition = 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+    div.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
     
     requestAnimationFrame(() => {
-      div.style.transform = 'scale(1.1) rotate(2deg)';
+      div.style.transform = 'scale(1.3) rotate(5deg)';
       div.style.opacity = '1';
       setTimeout(() => {
         div.style.transform = 'scale(1) rotate(0deg)';
-      }, 400);
+      }, 200);
     });
 
     return div;
   }
 
   function init3DReveal(container, choice, isCountdown = false) {
-    const width = container.clientWidth;
-    const height = container.clientHeight;
-
-    const scene = new THREE.Scene();
-    const camera = new THREE.PerspectiveCamera(45, width / height, 1, 1000);
-    camera.position.z = 100;
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(window.devicePixelRatio);
     container.innerHTML = '';
-    container.appendChild(renderer.domElement);
+    const wrapper = document.createElement('div');
+    wrapper.style.width = '100%';
+    wrapper.style.height = '100%';
+    wrapper.style.display = 'flex';
+    wrapper.style.alignItems = 'center';
+    wrapper.style.justifyContent = 'center';
+    
+    let currentChoice = isCountdown ? 'fist' : choice;
+    const svg = createSvg(currentChoice);
+    wrapper.appendChild(svg);
+    container.appendChild(wrapper);
 
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1);
-    scene.add(ambientLight);
-
-    let currentHand = create3DHand(isCountdown ? 'fist' : choice);
-    scene.add(currentHand);
-
-    currentHand.scale.set(1.3, 1.3, 1.3);
-
-    let frame = 0;
-    let revealChoice = null;
-
-    function animate() {
-      if (!container.isConnected) return;
-      requestAnimationFrame(animate);
-      
-      frame++;
-      
-      if (isCountdown && !revealChoice) {
-        const pump = Math.abs(Math.sin(frame * 0.2));
-        currentHand.position.y = pump * 15;
-        currentHand.rotation.x = Math.PI + pump * 0.2;
-      } else if (revealChoice) {
-        if (currentHand.choice !== revealChoice) {
-           scene.remove(currentHand);
-           currentHand = create3DHand(revealChoice);
-           currentHand.choice = revealChoice;
-           currentHand.scale.set(0.1, 0.1, 0.1);
-           scene.add(currentHand);
-        }
-        
-        const s = currentHand.scale.x + (1.5 - currentHand.scale.x) * 0.2;
-        currentHand.scale.set(s, s, s);
-        currentHand.position.y *= 0.8;
-        currentHand.rotation.x = currentHand.rotation.x + (Math.PI - currentHand.rotation.x) * 0.2;
-        currentHand.rotation.z = Math.sin(frame * 0.05) * 0.03;
-        currentHand.rotation.y = Math.cos(frame * 0.03) * 0.05;
-      } else {
-        currentHand.rotation.z = Math.sin(frame * 0.05) * 0.03;
-        currentHand.rotation.y = Math.cos(frame * 0.03) * 0.05;
-      }
-      
-      renderer.render(scene, camera);
+    if (isCountdown) {
+      wrapper.classList.add('anime-pump');
     }
 
-    animate();
     return { 
-      scene, 
-      camera, 
-      renderer, 
-      hand: currentHand, 
+      wrapper,
       reveal: (newChoice) => {
-        revealChoice = newChoice;
-        isCountdown = false;
+        wrapper.classList.remove('anime-pump');
+        wrapper.style.transition = 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)';
+        wrapper.style.transform = 'scale(0.1)';
+        
+        setTimeout(() => {
+          svg.innerHTML = PATHS[newChoice] || PATHS.rock;
+          wrapper.style.transform = 'scale(1.4)';
+        }, 150);
       },
       updateChoice: (newChoice) => {
-        scene.remove(currentHand);
-        currentHand = create3DHand(newChoice);
-        currentHand.scale.set(1.3, 1.3, 1.3);
-        scene.add(currentHand);
-        return currentHand;
+        svg.innerHTML = PATHS[newChoice] || PATHS.rock;
       }
     };
   }

@@ -1514,9 +1514,32 @@ button:not(:disabled):hover {
   z-index: 50;
 }
 
-.doodle-text {
+.countdown-2d-text {
+  font-family: 'Caveat', cursive;
+  font-size: 5rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-shadow: 4px 4px 0 rgba(255, 255, 255, 0.9), 6px 6px 0 var(--ink-soft);
+}
+
+.drawing-text {
   font-family: 'Caveat', cursive;
   text-shadow: 2px 2px 0 rgba(255, 255, 255, 0.8);
+}
+
+@keyframes anime-pump {
+  0% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-15px) scale(1.05); }
+  100% { transform: translateY(0) scale(1); }
+}
+
+.anime-pump {
+  animation: anime-pump 0.4s ease-in-out infinite;
 }
 
 .reveal-vs.clash-burst.bursting {
