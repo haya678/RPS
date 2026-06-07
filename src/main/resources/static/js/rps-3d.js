@@ -1,7 +1,7 @@
 /**
  * 2D Anime Character-themed Drawing animations.
  * Rock: The Thing (stony fist)
- * Paper: Konan (paper sheets)
+ * Paper: Konan (paper sheets & butterflies)
  * Scissors: Kartana (origami blades)
  */
 const Rps3D = (() => {
@@ -13,38 +13,44 @@ const Rps3D = (() => {
   const PATHS = {
     rock: `
       <!-- Stony Fist (The Thing style) -->
-      <path d="M30 75 Q20 70 18 50 Q18 35 30 30 Q35 25 50 25 Q65 25 75 35 Q82 45 82 60 Q82 75 65 82 Q50 88 30 75 Z" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2.5"/>
-      <!-- Rocky textures -->
-      <path d="M25 45 L35 48 M45 35 L48 45 M60 30 L58 42 M72 40 L65 48" fill="none" stroke="${BLUE_MID}" stroke-width="1.5"/>
-      <path d="M35 70 Q50 68 70 72" fill="none" stroke="${BLUE_MID}" stroke-width="1.5"/>
-      <!-- Knuckles -->
-      <path d="M38 26 L38 38 M52 25 L52 38 M66 28 L66 40" fill="none" stroke="${BLUE_DARK}" stroke-width="2"/>
-      <path d="M22 55 Q35 50 45 55 Q55 60 50 78" fill="none" stroke="${BLUE_DARK}" stroke-width="2.5"/>
+      <path d="M25 80 Q15 75 12 55 Q12 35 25 30 Q30 25 50 25 Q70 25 80 35 Q88 45 88 65 Q88 80 70 85 Q50 90 25 80 Z" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2.5"/>
+      <!-- Blocky textures -->
+      <path d="M20 60 L35 62 M40 55 L55 58 M60 50 L75 52 M30 40 L45 42 M55 35 L70 38" fill="none" stroke="${BLUE_MID}" stroke-width="1.5"/>
+      <!-- Deep cracks -->
+      <path d="M42 26 L40 45 M58 26 L60 45 M75 35 L72 55" fill="none" stroke="${BLUE_DARK}" stroke-width="1.5"/>
+      <!-- Thumb detail -->
+      <path d="M15 55 Q30 50 45 55 Q55 65 50 82" fill="none" stroke="${BLUE_DARK}" stroke-width="3"/>
+      <!-- Rocky highlight -->
+      <path d="M70 40 Q75 45 72 55" fill="none" stroke="${BLUE_LIGHT}" stroke-width="2"/>
     `,
     paper: `
-      <!-- Paper Sheets (Konan style) -->
-      <rect x="25" y="25" width="30" height="40" transform="rotate(-15 40 45)" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2"/>
-      <rect x="45" y="20" width="30" height="40" transform="rotate(10 60 40)" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2"/>
-      <rect x="35" y="45" width="30" height="40" transform="rotate(-5 50 65)" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2"/>
-      <!-- Sheet details -->
-      <path d="M30 35 L50 35 M55 30 L75 30 M40 60 L60 60" fill="none" stroke="${BLUE_LIGHT}" stroke-width="1"/>
-      <path d="M20 70 Q30 85 50 80" fill="none" stroke="${BLUE_MID}" stroke-width="1.5" stroke-dasharray="4 2"/>
-      <path d="M80 30 Q90 45 85 60" fill="none" stroke="${BLUE_MID}" stroke-width="1.5" stroke-dasharray="4 2"/>
+      <!-- Paper Shards (Konan style) -->
+      <path d="M20 40 L45 25 L65 35 L40 50 Z" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2"/>
+      <path d="M55 20 L85 15 L90 45 L60 50 Z" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2"/>
+      <path d="M30 65 L60 60 L75 85 L45 90 Z" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2"/>
+      <!-- Fluttering butterflies -->
+      <path d="M15 20 Q18 10 22 15 Q25 20 20 25 Q15 30 12 25 Q10 20 15 20" fill="${BLUE_LIGHT}" stroke="${BLUE_DARK}" stroke-width="1"/>
+      <path d="M85 75 Q88 65 92 70 Q95 75 90 80 Q85 85 82 80 Q80 75 85 75" fill="${BLUE_LIGHT}" stroke="${BLUE_DARK}" stroke-width="1"/>
+      <!-- Motion lines -->
+      <path d="M40 30 L55 20 M60 60 L80 55" fill="none" stroke="${BLUE_MID}" stroke-width="1" stroke-dasharray="3 2"/>
     `,
     scissors: `
       <!-- Origami Blades (Kartana style) -->
-      <path d="M50 85 L35 60 L45 20 L55 20 L65 60 Z" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2.5"/>
-      <path d="M45 20 L20 15 L25 45 L45 35" fill="${WHITE}" stroke="${BLUE_MID}" stroke-width="2"/>
-      <path d="M55 20 L80 15 L75 45 L55 35" fill="${WHITE}" stroke="${BLUE_MID}" stroke-width="2"/>
-      <!-- Blade edges -->
-      <path d="M48 25 L48 75 M52 25 L52 75" fill="none" stroke="${BLUE_LIGHT}" stroke-width="1"/>
-      <path d="M30 20 L40 25 M70 20 L60 25" fill="none" stroke="${BLUE_DARK}" stroke-width="1.5"/>
+      <path d="M50 90 L40 60 L48 10 L52 10 L60 60 Z" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2.5"/>
+      <!-- Sword Arms -->
+      <path d="M46 35 L15 25 L20 60 L45 45" fill="${WHITE}" stroke="${BLUE_MID}" stroke-width="2"/>
+      <path d="M54 35 L85 25 L80 60 L55 45" fill="${WHITE}" stroke="${BLUE_MID}" stroke-width="2"/>
+      <!-- Crossguard detail -->
+      <rect x="42" y="55" width="16" height="4" fill="${BLUE_DARK}"/>
+      <!-- Sharp edges -->
+      <path d="M20 30 L40 40 M80 30 L60 40" fill="none" stroke="${BLUE_LIGHT}" stroke-width="1.5"/>
+      <path d="M48 15 L48 50 M52 15 L52 50" fill="none" stroke="${BLUE_DARK}" stroke-width="0.8"/>
     `,
     fist: `
-      <!-- Stony Fist (Countdown) -->
-      <path d="M30 75 Q20 70 18 50 Q18 35 30 30 Q35 25 50 25 Q65 25 75 35 Q82 45 82 60 Q82 75 65 82 Q50 88 30 75 Z" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2.5"/>
-      <path d="M25 45 L35 48 M45 35 L48 45 M60 30 L58 42 M72 40 L65 48" fill="none" stroke="${BLUE_MID}" stroke-width="1.5"/>
-      <path d="M22 55 Q35 50 45 55 Q55 60 50 78" fill="none" stroke="${BLUE_DARK}" stroke-width="2.5"/>
+      <!-- The Thing style fist for countdown -->
+      <path d="M25 80 Q15 75 12 55 Q12 35 25 30 Q30 25 50 25 Q70 25 80 35 Q88 45 88 65 Q88 80 70 85 Q50 90 25 80 Z" fill="${WHITE}" stroke="${BLUE_DARK}" stroke-width="2.5"/>
+      <path d="M20 60 L35 62 M40 55 L55 58 M60 50 L75 52" fill="none" stroke="${BLUE_MID}" stroke-width="1.5"/>
+      <path d="M15 55 Q30 50 45 55 Q55 65 50 82" fill="none" stroke="${BLUE_DARK}" stroke-width="3"/>
     `
   };
 
