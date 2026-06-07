@@ -738,6 +738,7 @@ function handleWsMessage(data) {
       break;
 
     case 'matchResumed':
+      hideMatchTabWaiting();
       hideWaitingRoom();
       updateMatchRoomId(data.roomId);
 
@@ -904,6 +905,7 @@ function handleWsMessage(data) {
       break;
 
     case 'opponentDisconnected':
+      hideMatchTabWaiting();
       enableChoices(false);
       refreshBalance();
       setTimeout(() => {
