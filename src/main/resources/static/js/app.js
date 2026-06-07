@@ -147,19 +147,15 @@ function getActiveHouseMatch() {
 }
 
 function showReturnMatchModal(roomId) {
-  if (matchOnlyMode) return;
-  returnMatchOverlay?.classList.remove('hidden');
+  // UI removed as per request
 }
 
 function hideReturnMatchModal() {
-  returnMatchOverlay?.classList.add('hidden');
+  // UI removed as per request
 }
 
 function checkAndShowReturnMatchModal() {
-  const active = getActiveHouseMatch();
-  if (active && active.roomId && !matchOnlyMode) {
-    showReturnMatchModal(active.roomId);
-  }
+  // UI removed as per request
 }
 
 // ── UTILITIES ──────────────────────────────────────────
