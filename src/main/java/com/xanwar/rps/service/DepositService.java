@@ -73,9 +73,6 @@ public class DepositService {
     @Transactional
     public Map<String, Object> initiateDeposit(String userTornId, int xanaxAmount) {
         User user = userService.requireUser(userTornId);
-        if (user.getFrozen()) {
-            return ApiResponse.error("ACCOUNT FROZEN");
-        }
 
         // Check if already pending
         if (pendingDepositRepository.existsByTornId(userTornId)) {
@@ -216,35 +213,8 @@ public class DepositService {
 
         User user = userRepository.findByTornId(tornId).orElseThrow();
         long value = amount * depositProperties.getXanaxValue();
-        long bonusAdded = 0;
 
-        String bonusJson = user.getPendingDepositBonusJson();
-        if (bonusJson != null && !bonusJson.isBlank()) {
-            try {
-                JsonNode bonusInfo = objectMapper.readTree(bonusJson);
-                double percent = bonusInfo.path("percent").asDouble(0);
-                long maxBonus = bonusInfo.path("max_bonus").asLong(Long.MAX_VALUE);
-                double wagerMult = bonusInfo.path("wager_mult").asDouble(0);
-
-                long rawBonus = (long) (value * (percent / 100.0));
-                long finalBonus = Math.min(rawBonus, maxBonus);
-                long totalToBonus = value + finalBonus;
-
-                user.setBonusBalance(user.getBonusBalance() + totalToBonus);
-                long wagerReq = (long) (totalToBonus * wagerMult);
-                user.setWageringRequirementRemaining(user.getWageringRequirementRemaining() + wagerReq);
-                user.setWageringRequirementTotal(user.getWageringRequirementTotal() + wagerReq);
-                
-                bonusAdded = finalBonus;
-                user.setPendingDepositBonusJson(null); // Clear bonus
-            } catch (Exception e) {
-                log.error("Failed to parse bonus JSON for user {}: {}", tornId, e.getMessage());
-                user.setSiteBalance(user.getSiteBalance() + value);
-            }
-        } else {
-            user.setSiteBalance(user.getSiteBalance() + value);
-        }
-
+        user.setSiteBalance(user.getSiteBalance() + value);
         userRepository.save(user);
 
         Deposit record = new Deposit(uniqueId, tornId, user.getUsername(), amount, value, tornTime);
@@ -256,8 +226,6 @@ public class DepositService {
         // Sync and stop monitoring
         stopMonitoring(tornId, "confirmed");
         broadcastSync("confirm", eventId, null);
-        
-        // Discord alert would go here
     }
 
     private void broadcastSync(String type, String id, Object data) {

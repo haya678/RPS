@@ -63,21 +63,6 @@ public class User {
     @Column(name = "total_matches_won", nullable = false)
     private Integer totalMatchesWon = 0;
 
-    @Column(nullable = false)
-    private Boolean frozen = false;
-
-    @Column(name = "bonus_balance", nullable = false)
-    private Long bonusBalance = 0L;
-
-    @Column(name = "wagering_requirement_remaining", nullable = false)
-    private Long wageringRequirementRemaining = 0L;
-
-    @Column(name = "wagering_requirement_total", nullable = false)
-    private Long wageringRequirementTotal = 0L;
-
-    @Column(name = "pending_deposit_bonus_json", length = 1000)
-    private String pendingDepositBonusJson;
-
     public User(String tornId, String username) {
         this.tornId = tornId;
         this.username = username;
@@ -205,46 +190,6 @@ public class User {
         this.totalMatchesWon = totalMatchesWon;
     }
 
-    public Boolean getFrozen() {
-        return frozen;
-    }
-
-    public void setFrozen(Boolean frozen) {
-        this.frozen = frozen;
-    }
-
-    public Long getBonusBalance() {
-        return bonusBalance;
-    }
-
-    public void setBonusBalance(Long bonusBalance) {
-        this.bonusBalance = bonusBalance;
-    }
-
-    public Long getWageringRequirementRemaining() {
-        return wageringRequirementRemaining;
-    }
-
-    public void setWageringRequirementRemaining(Long wageringRequirementRemaining) {
-        this.wageringRequirementRemaining = wageringRequirementRemaining;
-    }
-
-    public Long getWageringRequirementTotal() {
-        return wageringRequirementTotal;
-    }
-
-    public void setWageringRequirementTotal(Long wageringRequirementTotal) {
-        this.wageringRequirementTotal = wageringRequirementTotal;
-    }
-
-    public String getPendingDepositBonusJson() {
-        return pendingDepositBonusJson;
-    }
-
-    public void setPendingDepositBonusJson(String pendingDepositBonusJson) {
-        this.pendingDepositBonusJson = pendingDepositBonusJson;
-    }
-
     @PrePersist
     void onCreate() {
         if (createdAt == null) {
@@ -270,15 +215,6 @@ public class User {
         }
         if (totalMatchesWon == null) {
             totalMatchesWon = 0;
-        }
-        if (bonusBalance == null) {
-            bonusBalance = 0L;
-        }
-        if (wageringRequirementRemaining == null) {
-            wageringRequirementRemaining = 0L;
-        }
-        if (wageringRequirementTotal == null) {
-            wageringRequirementTotal = 0L;
         }
     }
 

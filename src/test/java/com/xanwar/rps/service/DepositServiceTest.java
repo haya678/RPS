@@ -64,7 +64,6 @@ class DepositServiceTest {
     @Test
     void initiatesDepositSuccessfully() {
         User user = new User("67890", "TestPlayer");
-        user.setFrozen(false);
         when(userService.requireUser("67890")).thenReturn(user);
         when(pendingDepositRepository.existsByTornId("67890")).thenReturn(false);
         
