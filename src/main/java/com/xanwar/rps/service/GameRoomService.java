@@ -432,7 +432,7 @@ public class GameRoomService {
         sessionRegistry.sendToRoom(room, roundResult);
 
         if ("BOT_BAINING".equals(room.getPlayer2Id())) {
-            triggerBotChat(room, p1Choice, p2Choice, roundOutcome);
+            scheduler.schedule(() -> triggerBotChat(room, p1Choice, p2Choice, roundOutcome), 4, java.util.concurrent.TimeUnit.SECONDS);
         }
 
         if (matchOver) {

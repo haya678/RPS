@@ -1516,7 +1516,7 @@ button:not(:disabled):hover {
 
 .countdown-2d-text {
   font-family: 'Caveat', cursive;
-  font-size: 5rem;
+  font-size: 5.5rem;
   font-weight: 900;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -1525,6 +1525,13 @@ button:not(:disabled):hover {
   align-items: center;
   justify-content: center;
   text-shadow: 4px 4px 0 rgba(255, 255, 255, 0.9), 6px 6px 0 var(--ink-soft);
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  width: 500px;
+  height: 200px;
 }
 
 .drawing-text {
