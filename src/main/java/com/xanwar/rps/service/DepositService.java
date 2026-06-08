@@ -145,6 +145,58 @@ public class DepositService {
         }
     }
 
+    public void pollAndVerify() {
+        log.info("[DEPOSIT] Manual poll triggered.");
+        JsonNode data;
+        try {
+            data = tornApiClient.fetchHouseActivity();
+        } catch (Exception e) {
+            log.error("[DEPOSIT] Torn API fetch failed: {}", e.getMessage());
+            return;
+        }
+
+        JsonNode events = data.path("events");
+        if (!events.isObject()) return;
+
+        parseAndProcessEvents(events);
+    }
+
+    private void parseAndProcessEvents(JsonNode events) {
+        Iterator<Map.Entry<String, JsonNode>> fields = events.fields();
+        while (fields.hasNext()) {
+            Map.Entry<String, JsonNode> entry = fields.next();
+            String eventId = entry.getKey();
+            JsonNode event = entry.getValue();
+            String eventText = event.path("event").asText("");
+            long eventTimestamp = event.path("timestamp").asLong() * 1000;
+
+            if (!eventText.contains("Xanax")) continue;
+
+            Matcher senderMatch = Pattern.compile("XID=(\\d+)").matcher(eventText);
+            if (!senderMatch.find()) continue;
+            String senderId = senderMatch.group(1);
+
+            Matcher amountMatch = Pattern.compile("You were sent (?:([\\d,]+)x|some) Xanax from", Pattern.CASE_INSENSITIVE).matcher(eventText);
+            
+            if (amountMatch.find()) {
+                int sentAmount = 0;
+                String amtStr = amountMatch.group(1);
+                if (amtStr != null) {
+                    sentAmount = Integer.parseInt(amtStr.replace(",", ""));
+                } else if (eventText.contains("some")) {
+                    sentAmount = 1;
+                }
+
+                if (sentAmount == 0) continue;
+                
+                // For manual verify, we only process if the user has an account
+                if (userRepository.existsByTornId(senderId)) {
+                    claimDeposit(senderId, eventId, sentAmount, Instant.ofEpochMilli(eventTimestamp));
+                }
+            }
+        }
+    }
+
     private void pollAndVerify(String tornId, int expectedAmount, Instant startTime) {
         log.debug("[DEPOSIT DEBUG] Polling Torn API for User {}...", tornId);
         JsonNode data;
@@ -248,12 +300,18 @@ public class DepositService {
 
     @Transactional
     public Map<String, Object> verifyDeposit(String userTornId) {
-        // Keeping the old method but maybe pointing to status or just returning an error
-        // since the new flow is initiate -> poll.
-        // Actually, the user might still want the manual verify button to work.
-        // For now, I'll keep it as a legacy fallback that calls pollAndVerify once.
+        if (userTornId == null || userTornId.isBlank()) {
+            return ApiResponse.error("Not authenticated");
+        }
+        
+        // Manual trigger: poll for new events and process them
+        pollAndVerify();
+        
         User user = userService.requireUser(userTornId);
-        // ... (existing logic or adapted)
-        return Map.of("error", "Please use the new Deposit flow.");
+        return Map.of(
+            "success", true,
+            "site_balance", user.getSiteBalance(),
+            "message", "Verification triggered. Check your balance."
+        );
     }
 }
