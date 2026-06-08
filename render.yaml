@@ -5,6 +5,7 @@ services:
     runtime: docker
     plan: free
     dockerfilePath: ./Dockerfile
+    port: 8080
     healthCheckPath: /
     envVars:
       - key: SPRING_DATASOURCE_DRIVER_CLASS_NAME
