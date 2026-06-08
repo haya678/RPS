@@ -1622,8 +1622,8 @@ async function animateChoiceReveal(p1Name, p2Name, p1Choice, p2Choice, roundWinn
   choiceReveal.classList.add('reveal-active');
 
   // Start with 3D fist-pumping
-  const p1Reveal = Rps3D.init3DReveal(p1Slot, 'fist', true);
-  const p2Reveal = Rps3D.init3DReveal(p2Slot, 'fist', true);
+  const p1Reveal = Rps3D.init3DReveal($('#reveal-p1-sketch'), 'fist', true);
+  const p2Reveal = Rps3D.init3DReveal($('#reveal-p2-sketch'), 'fist', true);
 
   if (typeof MatchFx !== 'undefined') {
     MatchFx.playReveal();
