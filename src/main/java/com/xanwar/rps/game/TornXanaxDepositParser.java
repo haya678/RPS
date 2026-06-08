@@ -12,39 +12,39 @@ public final class TornXanaxDepositParser {
 
     private static final List<Pattern> PATTERNS = List.of(
             Pattern.compile(
-                    "You received (\\d+)\\s*x?\\s*Xanax from .*?(?:\\[|\\()(\\d+)(?:\\]|\\))\\s*(?:with (?:the )?message|message):\\s*"
+                    "You received (?:(\\d+)\\s*x?|some)\\s*Xanax from .*?(?:\\[|\\()(\\d+)(?:\\]|\\))\\s*(?:with (?:the )?message|message):\\s*"
                             + "(.+?)\\.?\\s*$",
                     Pattern.CASE_INSENSITIVE),
             Pattern.compile(
-                    "You were sent (\\d+)\\s*x?\\s*Xanax by .*?(?:\\[|\\()(\\d+)(?:\\]|\\))\\s*(?:with (?:the )?message|message):\\s*"
+                    "You were sent (?:(\\d+)\\s*x?|some)\\s*Xanax by .*?(?:\\[|\\()(\\d+)(?:\\]|\\))\\s*(?:with (?:the )?message|message):\\s*"
                             + "(.+?)\\.?\\s*$",
                     Pattern.CASE_INSENSITIVE),
             Pattern.compile(
-                    ".*?(?:\\[|\\()(\\d+)(?:\\]|\\))\\s*sent you (\\d+)\\s*x?\\s*Xanax\\s*(?:with (?:the )?message|message):\\s*(.+?)\\.?\\s*$",
+                    ".*?(?:\\[|\\()(\\d+)(?:\\]|\\))\\s*sent you (?:(\\d+)\\s*x?|some)\\s*Xanax\\s*(?:with (?:the )?message|message):\\s*(.+?)\\.?\\s*$",
                     Pattern.CASE_INSENSITIVE),
             Pattern.compile(
-                    ".*?sent you (\\d+)\\s*x?\\s*Xanax\\s*(?:with (?:the )?message|message):\\s*(.+?)\\.?\\s*$",
+                    ".*?sent you (?:(\\d+)\\s*x?|some)\\s*Xanax\\s*(?:with (?:the )?message|message):\\s*(.+?)\\.?\\s*$",
                     Pattern.CASE_INSENSITIVE),
             Pattern.compile(
-                    "You received (\\d+)\\s*x?\\s*Xanax from .*?\\s*(?:with (?:the )?message|message):\\s*(.+?)\\.?\\s*$",
+                    "You received (?:(\\d+)\\s*x?|some)\\s*Xanax from .*?\\s*(?:with (?:the )?message|message):\\s*(.+?)\\.?\\s*$",
                     Pattern.CASE_INSENSITIVE)
     );
 
     private static final List<Pattern> TRANSFER_PATTERNS = List.of(
             Pattern.compile(
-                    "You received (\\d+)\\s*x?\\s*Xanax from .*?(?:\\[|\\()(\\d+)(?:\\]|\\))",
+                    "You received (?:(\\d+)\\s*x?|some)\\s*Xanax from .*?(?:\\[|\\()(\\d+)(?:\\]|\\))",
                     Pattern.CASE_INSENSITIVE),
             Pattern.compile(
-                    "You were sent (\\d+)\\s*x?\\s*Xanax by .*?(?:\\[|\\()(\\d+)(?:\\]|\\))",
+                    "You were sent (?:(\\d+)\\s*x?|some)\\s*Xanax by .*?(?:\\[|\\()(\\d+)(?:\\]|\\))",
                     Pattern.CASE_INSENSITIVE),
             Pattern.compile(
-                    ".*?(?:\\[|\\()(\\d+)(?:\\]|\\))\\s*sent you (\\d+)\\s*x?\\s*Xanax",
+                    ".*?(?:\\[|\\()(\\d+)(?:\\]|\\))\\s*sent you (?:(\\d+)\\s*x?|some)\\s*Xanax",
                     Pattern.CASE_INSENSITIVE),
             Pattern.compile(
-                    ".*?sent you (\\d+)\\s*x?\\s*Xanax",
+                    ".*?sent you (?:(\\d+)\\s*x?|some)\\s*Xanax",
                     Pattern.CASE_INSENSITIVE),
             Pattern.compile(
-                    "You received (\\d+)\\s*x?\\s*Xanax from .*?",
+                    "You received (?:(\\d+)\\s*x?|some)\\s*Xanax from .*?",
                     Pattern.CASE_INSENSITIVE)
     );
 
@@ -73,17 +73,20 @@ public final class TornXanaxDepositParser {
             String messageText;
             if (pattern.pattern().startsWith(".*?(?:\\[|\\(")) {
                 senderId = matcher.group(1);
-                amount = Integer.parseInt(matcher.group(2));
+                String amountStr = matcher.group(2);
+                amount = amountStr != null ? Integer.parseInt(amountStr) : 1;
                 messageText = matcher.group(3);
             } else if (matcher.groupCount() == 2) {
                 if (fallbackSenderTornId == null || fallbackSenderTornId.isBlank()) {
                     continue;
                 }
-                amount = Integer.parseInt(matcher.group(1));
+                String amountStr = matcher.group(1);
+                amount = amountStr != null ? Integer.parseInt(amountStr) : 1;
                 senderId = fallbackSenderTornId;
                 messageText = matcher.group(2);
             } else {
-                amount = Integer.parseInt(matcher.group(1));
+                String amountStr = matcher.group(1);
+                amount = amountStr != null ? Integer.parseInt(amountStr) : 1;
                 senderId = matcher.group(2);
                 messageText = matcher.group(3);
             }
@@ -123,15 +126,18 @@ public final class TornXanaxDepositParser {
             String senderId;
             if (pattern.pattern().startsWith(".*?(?:\\[|\\(")) {
                 senderId = matcher.group(1);
-                amount = Integer.parseInt(matcher.group(2));
+                String amountStr = matcher.group(2);
+                amount = amountStr != null ? Integer.parseInt(amountStr) : 1;
             } else if (matcher.groupCount() == 1) {
                 if (fallbackSenderTornId == null || fallbackSenderTornId.isBlank()) {
                     continue;
                 }
-                amount = Integer.parseInt(matcher.group(1));
+                String amountStr = matcher.group(1);
+                amount = amountStr != null ? Integer.parseInt(amountStr) : 1;
                 senderId = fallbackSenderTornId;
             } else {
-                amount = Integer.parseInt(matcher.group(1));
+                String amountStr = matcher.group(1);
+                amount = amountStr != null ? Integer.parseInt(amountStr) : 1;
                 senderId = matcher.group(2);
             }
 

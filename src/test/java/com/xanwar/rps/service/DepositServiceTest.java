@@ -7,15 +7,20 @@ import com.xanwar.rps.config.GameProperties;
 import com.xanwar.rps.config.TornDepositProperties;
 import com.xanwar.rps.model.User;
 import com.xanwar.rps.repository.DepositRepository;
+import com.xanwar.rps.repository.PendingDepositRepository;
 import com.xanwar.rps.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.scheduling.TaskScheduler;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ScheduledFuture;
+import java.time.Instant;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -27,7 +32,10 @@ class DepositServiceTest {
     @Mock private UserService userService;
     @Mock private UserRepository userRepository;
     @Mock private DepositRepository depositRepository;
+    @Mock private PendingDepositRepository pendingDepositRepository;
     @Mock private TornApiClient tornApiClient;
+    @Mock private TaskScheduler taskScheduler;
+    @Mock private JdbcTemplate jdbcTemplate;
 
     private TornDepositProperties depositProperties;
     private GameProperties gameProperties;
@@ -41,132 +49,59 @@ class DepositServiceTest {
         depositProperties.setMaxAgeHours(72);
         depositProperties.setRecipientName("Hannath");
         depositProperties.setRecipientId("3961385");
+        depositProperties.setXanaxValue(820000);
 
         gameProperties = new GameProperties();
         gameProperties.setMoolaPerXanax(4);
 
         depositService = new DepositService(
-                userService, userRepository, depositRepository,
-                tornApiClient, depositProperties, gameProperties
+                userService, userRepository, depositRepository, pendingDepositRepository,
+                tornApiClient, depositProperties, gameProperties,
+                taskScheduler, mapper, jdbcTemplate
         );
     }
 
     @Test
-    void creditsWalletFromLogWithScalarSenderAndItemsArray() throws Exception {
+    void initiatesDepositSuccessfully() {
         User user = new User("67890", "TestPlayer");
-        user.setSiteBalance(0L);
+        user.setFrozen(false);
         when(userService.requireUser("67890")).thenReturn(user);
-        when(depositRepository.existsByEventId(anyString())).thenReturn(false);
+        when(pendingDepositRepository.existsByTornId("67890")).thenReturn(false);
+        
+        // Mock taskScheduler to return a non-null future
+        ScheduledFuture mockFuture = org.mockito.Mockito.mock(ScheduledFuture.class);
+        when(taskScheduler.scheduleWithFixedDelay(org.mockito.ArgumentMatchers.any(Runnable.class), 
+                org.mockito.ArgumentMatchers.any(Instant.class), 
+                org.mockito.ArgumentMatchers.any(java.time.Duration.class))).thenReturn(mockFuture);
 
-        // Torn API log format: scalar sender integer, items as array
-        String json = """
-                {
-                  "events": {},
-                  "log": {
-                    "999": {
-                      "timestamp": %d,
-                      "log": 6380,
-                      "title": "Received items",
-                      "data": {
-                        "items": [{"name": "Xanax", "qty": 2}],
-                        "sender": 67890,
-                        "message": "RPS"
-                      }
-                    }
-                  }
-                }
-                """.formatted(System.currentTimeMillis() / 1000);
-        JsonNode apiResponse = mapper.readTree(json);
-        when(tornApiClient.fetchHouseActivity()).thenReturn(apiResponse);
-
-        Map<String, Object> result = depositService.verifyDeposit("67890");
+        Map<String, Object> result = depositService.initiateDeposit("67890", 5);
 
         assertThat(result.get("success")).isEqualTo(true);
-        assertThat(result.get("verified")).isEqualTo(true);
-        assertThat((long) result.get("moola_credited")).isEqualTo(8L);
-        assertThat(user.getSiteBalance()).isEqualTo(8L);
+        assertThat(result.get("message")).isEqualTo("Monitoring for Xanax...");
     }
 
     @Test
-    void creditsWalletFromEventsWithHtmlLink() throws Exception {
-        User user = new User("12345", "SomePlayer");
-        user.setSiteBalance(100L);
-        when(userService.requireUser("12345")).thenReturn(user);
-        when(depositRepository.existsByEventId(anyString())).thenReturn(false);
+    void failsToInitiateWhenAlreadyPending() {
+        when(pendingDepositRepository.existsByTornId("67890")).thenReturn(true);
+        when(userService.requireUser("67890")).thenReturn(new User("67890", "TestPlayer"));
 
-        String json = """
-                {
-                  "events": {
-                    "555": {
-                      "timestamp": %d,
-                      "event": "<a href='/profiles.php?XID=12345'>SomePlayer</a> sent you 3x Xanax with the message: RPS."
-                    }
-                  },
-                  "log": {}
-                }
-                """.formatted(System.currentTimeMillis() / 1000);
-        JsonNode apiResponse = mapper.readTree(json);
-        when(tornApiClient.fetchHouseActivity()).thenReturn(apiResponse);
+        Map<String, Object> result = depositService.initiateDeposit("67890", 5);
 
-        Map<String, Object> result = depositService.verifyDeposit("12345");
-
-        assertThat(result.get("success")).isEqualTo(true);
-        assertThat(result.get("verified")).isEqualTo(true);
-        assertThat((long) result.get("moola_credited")).isEqualTo(12L);
-        assertThat(user.getSiteBalance()).isEqualTo(112L);
+        assertThat(result.get("success")).isEqualTo(false);
+        assertThat(result.get("error")).isEqualTo("A deposit is already pending for your account.");
     }
 
     @Test
-    void skipsDepositWhenSenderDoesNotMatchLoggedInUser() throws Exception {
-        User user = new User("11111", "OtherPlayer");
-        user.setSiteBalance(50L);
-        when(userService.requireUser("11111")).thenReturn(user);
-
-        // Sender is 99999, but logged-in user is 11111
-        String json = """
-                {
-                  "events": {
-                    "777": {
-                      "timestamp": %d,
-                      "event": "<a href='/profiles.php?XID=99999'>Attacker</a> sent you 1x Xanax with the message: RPS."
-                    }
-                  },
-                  "log": {}
-                }
-                """.formatted(System.currentTimeMillis() / 1000);
-        JsonNode apiResponse = mapper.readTree(json);
-        when(tornApiClient.fetchHouseActivity()).thenReturn(apiResponse);
-
-        Map<String, Object> result = depositService.verifyDeposit("11111");
-
-        assertThat(result.get("verified")).isEqualTo(false);
-        assertThat(user.getSiteBalance()).isEqualTo(50L);
+    void checkStatusReturnsPending() {
+        when(pendingDepositRepository.existsByTornId("67890")).thenReturn(true);
+        Map<String, Object> result = depositService.checkStatus("67890");
+        assertThat(result.get("status")).isEqualTo("pending");
     }
 
     @Test
-    void skipsDuplicateDeposit() throws Exception {
-        User user = new User("67890", "TestPlayer");
-        user.setSiteBalance(0L);
-        when(userService.requireUser("67890")).thenReturn(user);
-        when(depositRepository.existsByEventId("events-555")).thenReturn(true);
-
-        String json = """
-                {
-                  "events": {
-                    "555": {
-                      "timestamp": %d,
-                      "event": "<a href='/profiles.php?XID=67890'>TestPlayer</a> sent you 1x Xanax with the message: RPS."
-                    }
-                  },
-                  "log": {}
-                }
-                """.formatted(System.currentTimeMillis() / 1000);
-        JsonNode apiResponse = mapper.readTree(json);
-        when(tornApiClient.fetchHouseActivity()).thenReturn(apiResponse);
-
+    void verifyDepositReturnsError() {
+        when(userService.requireUser("67890")).thenReturn(new User("67890", "TestPlayer"));
         Map<String, Object> result = depositService.verifyDeposit("67890");
-
-        assertThat(result.get("verified")).isEqualTo(false);
-        assertThat(user.getSiteBalance()).isEqualTo(0L);
+        assertThat(result.get("error")).isEqualTo("Please use the new Deposit flow.");
     }
 }

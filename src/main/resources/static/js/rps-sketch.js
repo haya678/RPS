@@ -7,37 +7,22 @@ const RpsSketch = (() => {
   const SVG_NS = 'http://www.w3.org/2000/svg';
 
   const FINAL = {
-    rock: `<svg class="rps-sketch" xmlns="${SVG_NS}" viewBox="0 0 80 80" aria-hidden="true">
-      <!-- Wrist/Hand base -->
-      <path d="M32 68 Q40 64 48 68" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>
-      <!-- Fist outline -->
-      <path d="M28 62 Q22 55 24 42 Q26 30 36 26 Q46 22 56 28 Q66 35 64 50 Q62 62 52 65 Q42 68 32 62 Z" fill="rgba(240,246,255,0.9)" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      <!-- Knuckles/Fingers -->
-      <path d="M36 26 Q38 38 36 48 M46 24 Q48 36 46 46 M56 28 Q58 40 56 50" fill="none" stroke="${INK2}" stroke-width="1.8" stroke-linecap="round" opacity="0.8"/>
-      <!-- Thumb curled over -->
-      <path d="M24 42 Q32 48 44 46" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/>
+    rock: `<svg class="rps-sketch" xmlns="${SVG_NS}" viewBox="0 0 100 100" aria-hidden="true">
+      <path d="M20 75 Q15 65 15 50 Q15 35 25 25 Q35 20 55 20 Q75 20 85 30 Q92 40 92 60 Q92 75 80 85 Q60 90 20 75 Z" fill="#d2691e" stroke="#5d2e0a" stroke-width="2"/>
+      <path d="M30 50 L50 52 M55 45 L75 48 M35 65 L55 68" fill="none" stroke="#8b4513" stroke-width="1.5" opacity="0.6"/>
+      <path d="M15 55 Q30 50 48 55 Q60 65 55 85" fill="none" stroke="#5d2e0a" stroke-width="3"/>
     </svg>`,
-    paper: `<svg class="rps-sketch" xmlns="${SVG_NS}" viewBox="0 0 80 80" aria-hidden="true">
-      <!-- Wrist -->
-      <path d="M35 72 Q40 70 45 72" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>
-      <!-- Palm and fingers -->
-      <path d="M32 65 Q28 58 30 48 L26 22 Q26 16 32 16 Q38 16 38 24 L38 42 M38 42 L42 12 Q42 6 48 6 Q54 6 54 14 L54 42 M54 42 L58 16 Q58 10 64 10 Q70 10 70 18 L70 45 M70 45 L74 30 Q74 24 80 24 Q84 24 84 34 L80 58 Q78 68 60 72 Q45 74 32 65 Z" fill="rgba(240,246,255,0.9)" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      <!-- Thumb -->
-      <path d="M30 48 Q22 42 16 46 Q10 50 18 56 Q25 62 32 60" fill="rgba(240,246,255,0.9)" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+    paper: `<svg class="rps-sketch" xmlns="${SVG_NS}" viewBox="0 0 100 100" aria-hidden="true">
+      <path d="M15 45 L45 25 L75 40 L45 65 Z" fill="#ffffff" stroke="#163e79" stroke-width="1"/>
+      <path d="M50 20 L85 15 L95 50 L60 60 Z" fill="#f0f0f0" stroke="#163e79" stroke-width="1"/>
+      <path d="M25 70 L65 65 L85 95 L35 98 Z" fill="#e8e8e8" stroke="#163e79" stroke-width="1"/>
+      <path d="M12 25 Q18 12 24 18 Q30 24 18 30 Q12 24 12 25" fill="#9370db" stroke="#483d8b" stroke-width="0.8"/>
     </svg>`,
-    scissors: `<svg class="rps-sketch" xmlns="${SVG_NS}" viewBox="0 0 80 80" aria-hidden="true">
-      <!-- Wrist -->
-      <path d="M35 72 Q40 70 45 72" fill="none" stroke="${INK}" stroke-width="2" stroke-linecap="round"/>
-      <!-- Base of hand with folded fingers -->
-      <path d="M32 65 Q28 58 30 48 Q40 42 55 45 Q65 48 68 58 Q70 68 55 72 Q42 74 32 65 Z" fill="rgba(240,246,255,0.9)" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      <!-- Index Finger (V) -->
-      <path d="M38 42 L44 14 Q46 8 52 10 Q58 12 54 20 L48 45" fill="rgba(240,246,255,0.9)" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      <!-- Middle Finger (V) -->
-      <path d="M52 45 L66 22 Q68 16 74 18 Q80 20 76 28 L62 52" fill="rgba(240,246,255,0.9)" stroke="${INK}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-      <!-- Thumb folded -->
-      <path d="M30 48 Q24 50 26 58 Q28 62 35 58" fill="none" stroke="${INK}" stroke-width="2.2" stroke-linecap="round"/>
-      <!-- Lines for other folded fingers -->
-      <path d="M50 48 Q55 52 58 58 M58 52 Q62 55 64 60" fill="none" stroke="${INK2}" stroke-width="1.5" stroke-linecap="round" opacity="0.7"/>
+    scissors: `<svg class="rps-sketch" xmlns="${SVG_NS}" viewBox="0 0 100 100" aria-hidden="true">
+      <path d="M50 95 L38 60 L48 5 L52 5 L62 60 Z" fill="#ffffff" stroke="#2f4f4f" stroke-width="1.5"/>
+      <path d="M45 45 L5 25 L12 70 L40 55" fill="#ffffff" stroke="#b22222" stroke-width="1.8"/>
+      <path d="M54 45 L95 25 L88 70 L60 55" fill="#ffffff" stroke="#b22222" stroke-width="1.8"/>
+      <rect x="38" y="55" width="24" height="6" rx="1" fill="#ffd700" stroke="#b8860b" stroke-width="1"/>
     </svg>`
   };
 

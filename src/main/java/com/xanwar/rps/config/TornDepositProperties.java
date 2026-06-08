@@ -9,6 +9,7 @@ public class TornDepositProperties {
     private int maxAgeHours = 72;
     private String recipientName = "Hannath";
     private String recipientId = "3961385";
+    private long xanaxValue = 820000;
 
     public String getRequiredMessage() {
         return requiredMessage;
@@ -40,5 +41,13 @@ public class TornDepositProperties {
 
     public void setRecipientId(String recipientId) {
         this.recipientId = recipientId;
+    }
+
+    public long getXanaxValue() {
+        return xanaxValue;
+    }
+
+    public void setXanaxValue(long xanaxValue) {
+        this.xanaxValue = xanaxValue;
     }
 }

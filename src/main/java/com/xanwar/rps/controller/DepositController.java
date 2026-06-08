@@ -45,4 +45,32 @@ public class DepositController {
         );
         return ResponseEntity.ok(depositService.verifyDeposit(tornId));
     }
+
+    @PostMapping("/initiate")
+    public ResponseEntity<Map<String, Object>> initiate(
+            @RequestBody Map<String, Object> body,
+            HttpSession session
+    ) {
+        String tornId = sessionUserResolver.resolveTornId(session, (String) body.get("tornId"));
+        int xanaxAmount = Integer.parseInt(String.valueOf(body.get("xanaxAmount")));
+        return ResponseEntity.ok(depositService.initiateDeposit(tornId, xanaxAmount));
+    }
+
+    @PostMapping("/status")
+    public ResponseEntity<Map<String, Object>> checkStatus(
+            @RequestBody Map<String, Object> body,
+            HttpSession session
+    ) {
+        String tornId = sessionUserResolver.resolveTornId(session, (String) body.get("tornId"));
+        return ResponseEntity.ok(depositService.checkStatus(tornId));
+    }
+
+    @PostMapping("/cancel")
+    public ResponseEntity<Map<String, Object>> cancel(
+            @RequestBody Map<String, Object> body,
+            HttpSession session
+    ) {
+        String tornId = sessionUserResolver.resolveTornId(session, (String) body.get("tornId"));
+        return ResponseEntity.ok(depositService.cancelDeposit(tornId));
+    }
 }
