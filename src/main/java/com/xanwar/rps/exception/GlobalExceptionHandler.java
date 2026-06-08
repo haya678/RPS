@@ -43,8 +43,9 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> generic(Exception ex) {
-        log.error("Unhandled exception", ex);
+        log.error("Unhandled exception: {} - {}", ex.getClass().getSimpleName(), ex.getMessage(), ex);
+        String detailedMsg = "An unexpected server error occurred: [" + ex.getClass().getSimpleName() + "] " + ex.getMessage();
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("An unexpected server error occurred. Please try again later."));
+                .body(ApiResponse.error(detailedMsg));
     }
 }
