@@ -146,23 +146,36 @@ public class DepositService {
     }
 
     public void pollAndVerify() {
-        log.info("[DEPOSIT] Manual poll triggered.");
+        log.info("[DEPOSIT] Manual poll started - fetching latest house activity...");
         JsonNode data;
         try {
             data = tornApiClient.fetchHouseActivity();
         } catch (Exception e) {
-            log.error("[DEPOSIT] Torn API fetch failed: {}", e.getMessage());
+            log.error("[DEPOSIT] Torn API fetch failed during manual poll: {}", e.getMessage());
             return;
         }
 
         JsonNode events = data.path("events");
-        if (!events.isObject()) return;
+        if (!events.isObject()) {
+            log.warn("[DEPOSIT] No events object found in Torn API response.");
+            return;
+        }
 
+        log.info("[DEPOSIT] Processing events for manual verification...");
         parseAndProcessEvents(events);
+        log.info("[DEPOSIT] Manual poll completed.");
     }
 
     private void parseAndProcessEvents(JsonNode events) {
         Iterator<Map.Entry<String, JsonNode>> fields = events.fields();
+        int count = 0;
+        while (fields.hasNext()) {
+            fields.next();
+            count++;
+        }
+        log.info("[DEPOSIT] Total events to process: {}", count);
+
+        fields = events.fields();
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> entry = fields.next();
             String eventId = entry.getKey();
@@ -171,9 +184,13 @@ public class DepositService {
             long eventTimestamp = event.path("timestamp").asLong() * 1000;
 
             if (!eventText.contains("Xanax")) continue;
+            log.info("[DEPOSIT] Found potential Xanax event ({}): {}", eventId, eventText);
 
             Matcher senderMatch = Pattern.compile("XID=(\\d+)").matcher(eventText);
-            if (!senderMatch.find()) continue;
+            if (!senderMatch.find()) {
+                log.warn("[DEPOSIT] Could not extract sender ID from event: {}", eventText);
+                continue;
+            }
             String senderId = senderMatch.group(1);
 
             Matcher amountMatch = Pattern.compile("You were sent (?:([\\d,]+)x|some) Xanax from", Pattern.CASE_INSENSITIVE).matcher(eventText);
@@ -187,12 +204,21 @@ public class DepositService {
                     sentAmount = 1;
                 }
 
-                if (sentAmount == 0) continue;
+                if (sentAmount == 0) {
+                    log.warn("[DEPOSIT] Parsed sentAmount is 0 for event: {}", eventText);
+                    continue;
+                }
                 
+                log.info("[DEPOSIT] Parsed event: Sender={}, Amount={}, Time={}", senderId, sentAmount, Instant.ofEpochMilli(eventTimestamp));
+
                 // For manual verify, we only process if the user has an account
                 if (userRepository.existsByTornId(senderId)) {
                     claimDeposit(senderId, eventId, sentAmount, Instant.ofEpochMilli(eventTimestamp));
+                } else {
+                    log.info("[DEPOSIT] Skipping event: Sender {} does not have a site account.", senderId);
                 }
+            } else {
+                log.info("[DEPOSIT] Event did not match Xanax sent pattern: {}", eventText);
             }
         }
     }
@@ -259,8 +285,8 @@ public class DepositService {
         String uniqueId = "auto-" + eventId;
         if (depositRepository.existsByEventId(uniqueId)) return;
 
-        // Atomic claim: delete pending deposit. If it fails, another process/thread won it.
-        if (!pendingDepositRepository.existsByTornId(tornId)) return;
+        // Atomic claim: try to delete pending deposit if it exists.
+        // Even if no pending deposit exists (manual verify), we still proceed.
         pendingDepositRepository.deleteByTornId(tornId);
 
         User user = userRepository.findByTornId(tornId).orElseThrow();
@@ -300,18 +326,26 @@ public class DepositService {
 
     @Transactional
     public Map<String, Object> verifyDeposit(String userTornId) {
+        log.info("[DEPOSIT] Manual verification requested for user: {}", userTornId);
         if (userTornId == null || userTornId.isBlank()) {
+            log.warn("[DEPOSIT] Manual verification rejected: User ID is blank");
             return ApiResponse.error("Not authenticated");
         }
         
-        // Manual trigger: poll for new events and process them
-        pollAndVerify();
-        
-        User user = userService.requireUser(userTornId);
-        return Map.of(
-            "success", true,
-            "site_balance", user.getSiteBalance(),
-            "message", "Verification triggered. Check your balance."
-        );
+        try {
+            // Manual trigger: poll for new events and process them
+            pollAndVerify();
+            
+            User user = userService.requireUser(userTornId);
+            log.info("[DEPOSIT] Manual verification successful for user {}. Balance: {}", userTornId, user.getSiteBalance());
+            return Map.of(
+                "success", true,
+                "site_balance", user.getSiteBalance(),
+                "message", "Verification triggered. Check your balance."
+            );
+        } catch (Exception e) {
+            log.error("[DEPOSIT] Manual verification error for user {}: {}", userTornId, e.getMessage(), e);
+            return ApiResponse.error("Verification failed: " + e.getMessage());
+        }
     }
 }

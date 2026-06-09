@@ -98,9 +98,35 @@ class DepositServiceTest {
     }
 
     @Test
-    void verifyDepositReturnsError() {
-        when(userService.requireUser("67890")).thenReturn(new User("67890", "TestPlayer"));
+    void claimDepositSucceedsWithoutPendingRecord() {
+        User user = new User("67890", "TestPlayer");
+        user.setSiteBalance(100L);
+        when(userRepository.findByTornId("67890")).thenReturn(Optional.of(user));
+        when(depositRepository.existsByEventId("auto-12345")).thenReturn(false);
+        
+        // Mock TornDepositProperties
+        // (depositProperties was set up in setUp)
+
+        depositService.claimDeposit("67890", "12345", 1, Instant.now());
+
+        assertThat(user.getSiteBalance()).isEqualTo(100L + depositProperties.getXanaxValue());
+    }
+
+    @Test
+    void verifyDepositReturnsSuccess() {
+        User user = new User("67890", "TestPlayer");
+        user.setSiteBalance(500L);
+        when(userService.requireUser("67890")).thenReturn(user);
+
+        // Mock tornApiClient to return empty events so pollAndVerify doesn't fail
+        JsonNode emptyNode = mapper.createObjectNode();
+        ((com.fasterxml.jackson.databind.node.ObjectNode) emptyNode).putObject("events");
+        when(tornApiClient.fetchHouseActivity()).thenReturn(emptyNode);
+
         Map<String, Object> result = depositService.verifyDeposit("67890");
-        assertThat(result.get("error")).isEqualTo("Please use the new Deposit flow.");
+        
+        assertThat(result.get("success")).isEqualTo(true);
+        assertThat(result.get("site_balance")).isEqualTo(500L);
+        assertThat(result.get("message")).isEqualTo("Verification triggered. Check your balance.");
     }
 }
