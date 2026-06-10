@@ -8,10 +8,10 @@
   --ink-soft: #446fa9; /* Soft blue pencil/ink */
   --line: #aecbf7;  /* Ruled notebook line color */
   --accent: #0a295c; /* Darker navy ink for highlights */
-  --accent-highlight: rgba(255, 235, 59, 0.45); /* Soft yellow highlighter marker */
-  --good: #227c41;  /* Fine green gel pen mark */
-  --bad: #b22d2d;   /* Sketchy red ink pen mark */
-  --warn: #916812;  /* Pencil yellow highlight */
+  --accent-highlight: rgba(174, 203, 247, 0.45); /* Soft blue highlight */
+  --good: #446fa9;  /* Soft blue mark */
+  --bad: #163e79;   /* Navy blue mark */
+  --warn: #aecbf7;  /* Light blue highlight */
   --shadow: rgba(22, 62, 121, 0.08);
   --radius: 15px;
 }
@@ -20,7 +20,7 @@ body {
   font-family: 'Patrick Hand', cursive;
   font-size: 1.15rem;
   background:
-    linear-gradient(90deg, transparent 79px, #ffa0a0 79px, #ffa0a0 81px, transparent 81px),
+    linear-gradient(90deg, transparent 79px, #aecbf7 79px, #aecbf7 81px, transparent 81px),
     repeating-linear-gradient(
       to bottom,
       #FAF8F5,
@@ -760,11 +760,11 @@ button:not(:disabled):hover {
 }
 
 .match-arena.flash-win {
-  box-shadow: inset 0 0 60px rgba(34, 124, 65, 0.25);
+  box-shadow: inset 0 0 60px rgba(68, 111, 169, 0.25);
 }
 
 .match-arena.flash-lose {
-  box-shadow: inset 0 0 60px rgba(178, 45, 45, 0.2);
+  box-shadow: inset 0 0 60px rgba(22, 62, 121, 0.2);
 }
 
 /* Notebook match FX — ink, sketches, highlighter, paper */
@@ -812,10 +812,10 @@ button:not(:disabled):hover {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 235, 59, 0.15) 12%,
-    rgba(255, 235, 59, 0.55) 45%,
-    rgba(255, 235, 59, 0.45) 70%,
-    rgba(255, 235, 59, 0.1) 92%,
+    rgba(174, 203, 247, 0.15) 12%,
+    rgba(174, 203, 247, 0.55) 45%,
+    rgba(174, 203, 247, 0.45) 70%,
+    rgba(174, 203, 247, 0.1) 92%,
     transparent 100%
   );
   transform: rotate(-4deg) scaleX(0.2);
@@ -925,7 +925,7 @@ button:not(:disabled):hover {
   letter-spacing: 0.04em;
   color: var(--accent);
   text-shadow:
-    2px 2px 0 rgba(255, 235, 59, 0.5),
+    2px 2px 0 rgba(174, 203, 247, 0.5),
     0 0 0 rgba(22, 62, 121, 0.2);
   animation: fxStampPop 1s cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
 }
@@ -1572,13 +1572,13 @@ button:not(:disabled):hover {
 
 #round-result.win {
   color: var(--good);
-  background: rgba(34, 124, 65, 0.1);
+  background: rgba(68, 111, 169, 0.1);
   animation: roundWinPulse 0.6s ease-out;
 }
 
 #round-result.lose {
   color: var(--bad);
-  background: rgba(178, 45, 45, 0.08);
+  background: rgba(22, 62, 121, 0.08);
 }
 
 #round-result.tie {
@@ -1981,13 +1981,13 @@ body.match-only .game-main {
 }
 
 .success-msg {
-  background: rgba(34, 124, 65, 0.08);
+  background: rgba(68, 111, 169, 0.08);
   border: 2px solid var(--good) !important;
   color: var(--good);
 }
 
 .error-msg {
-  background: rgba(178, 45, 45, 0.08);
+  background: rgba(22, 62, 121, 0.08);
   border: 2px solid var(--bad) !important;
   color: var(--bad);
 }
@@ -2036,7 +2036,7 @@ body.match-only .game-main {
 }
 .leaderboard-item:hover {
   transform: rotate(-0.5deg) scale(1.01);
-  background: rgba(255, 235, 59, 0.08);
+  background: rgba(174, 203, 247, 0.08);
 }
 
 .rank-icon {
@@ -2073,13 +2073,14 @@ body.match-only .game-main {
   box-shadow: inset 0 0 0 1px rgba(22,62,121,0.15);
 }
 .rank-gold {
-  background: linear-gradient(135deg, #f8d13b, #de9b12);
+  background: linear-gradient(135deg, #ffffff, #aecbf7);
+  color: var(--ink);
 }
 .rank-silver {
-  background: linear-gradient(135deg, #d8dae0, #9ea3ae);
+  background: linear-gradient(135deg, #aecbf7, #446fa9);
 }
 .rank-bronze {
-  background: linear-gradient(135deg, #d48a4d, #a06433);
+  background: linear-gradient(135deg, #446fa9, #163e79);
 }
 
 /* ── ADMIN ───────────────────────────────────── */
@@ -2154,7 +2155,7 @@ body.match-only .game-main {
   height: 3.2rem;
   margin: 0 auto 0.75rem;
   border-radius: 50%;
-  background: rgba(34, 124, 65, 0.15);
+  background: rgba(68, 111, 169, 0.15);
   border: 2px solid var(--good);
   color: var(--good);
   font-family: 'Caveat', cursive;
@@ -2490,7 +2491,7 @@ body.match-only .game-main {
   justify-content: center;
   background-color: #FAF8F5;
   background-image:
-    linear-gradient(90deg, transparent 79px, #ffa0a0 79px, #ffa0a0 81px, transparent 81px),
+    linear-gradient(90deg, transparent 79px, #aecbf7 79px, #aecbf7 81px, transparent 81px),
     repeating-linear-gradient(
       to bottom,
       #FAF8F5,
@@ -2536,7 +2537,7 @@ body.match-only .game-main {
   align-items: center;
   background-color: #FAF8F5; /* Match notebook background */
   background-image:
-    linear-gradient(90deg, transparent 79px, #ffa0a0 79px, #ffa0a0 81px, transparent 81px),
+    linear-gradient(90deg, transparent 79px, #aecbf7 79px, #aecbf7 81px, transparent 81px),
     repeating-linear-gradient(
       to bottom,
       #FAF8F5,
@@ -2667,7 +2668,7 @@ body.match-only .game-main {
 }
 
 .history-outcome.loss {
-  color: #b22d2d;
+  color: var(--bad);
 }
 
 .history-pot {

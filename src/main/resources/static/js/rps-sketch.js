@@ -8,21 +8,21 @@ const RpsSketch = (() => {
 
   const FINAL = {
     rock: `<svg class="rps-sketch" xmlns="${SVG_NS}" viewBox="0 0 100 100" aria-hidden="true">
-      <path d="M20 75 Q15 65 15 50 Q15 35 25 25 Q35 20 55 20 Q75 20 85 30 Q92 40 92 60 Q92 75 80 85 Q60 90 20 75 Z" fill="#d2691e" stroke="#5d2e0a" stroke-width="2"/>
-      <path d="M30 50 L50 52 M55 45 L75 48 M35 65 L55 68" fill="none" stroke="#8b4513" stroke-width="1.5" opacity="0.6"/>
-      <path d="M15 55 Q30 50 48 55 Q60 65 55 85" fill="none" stroke="#5d2e0a" stroke-width="3"/>
+      <path d="M20 75 Q15 65 15 50 Q15 35 25 25 Q35 20 55 20 Q75 20 85 30 Q92 40 92 60 Q92 75 80 85 Q60 90 20 75 Z" fill="#ffffff" stroke="#163e79" stroke-width="2"/>
+      <path d="M30 50 L50 52 M55 45 L75 48 M35 65 L55 68" fill="none" stroke="#163e79" opacity="0.4"/>
+      <path d="M15 55 Q30 50 48 55 Q60 65 55 85" fill="none" stroke="#163e79" stroke-width="3"/>
     </svg>`,
     paper: `<svg class="rps-sketch" xmlns="${SVG_NS}" viewBox="0 0 100 100" aria-hidden="true">
       <path d="M15 45 L45 25 L75 40 L45 65 Z" fill="#ffffff" stroke="#163e79" stroke-width="1"/>
       <path d="M50 20 L85 15 L95 50 L60 60 Z" fill="#f0f0f0" stroke="#163e79" stroke-width="1"/>
       <path d="M25 70 L65 65 L85 95 L35 98 Z" fill="#e8e8e8" stroke="#163e79" stroke-width="1"/>
-      <path d="M12 25 Q18 12 24 18 Q30 24 18 30 Q12 24 12 25" fill="#9370db" stroke="#483d8b" stroke-width="0.8"/>
+      <path d="M12 25 Q18 12 24 18 Q30 24 18 30 Q12 24 12 25" fill="#aecbf7" stroke="#163e79" stroke-width="0.8"/>
     </svg>`,
     scissors: `<svg class="rps-sketch" xmlns="${SVG_NS}" viewBox="0 0 100 100" aria-hidden="true">
-      <path d="M50 95 L38 60 L48 5 L52 5 L62 60 Z" fill="#ffffff" stroke="#2f4f4f" stroke-width="1.5"/>
-      <path d="M45 45 L5 25 L12 70 L40 55" fill="#ffffff" stroke="#b22222" stroke-width="1.8"/>
-      <path d="M54 45 L95 25 L88 70 L60 55" fill="#ffffff" stroke="#b22222" stroke-width="1.8"/>
-      <rect x="38" y="55" width="24" height="6" rx="1" fill="#ffd700" stroke="#b8860b" stroke-width="1"/>
+      <path d="M50 95 L38 60 L48 5 L52 5 L62 60 Z" fill="#ffffff" stroke="#163e79" stroke-width="1.5"/>
+      <path d="M45 45 L5 25 L12 70 L40 55" fill="#ffffff" stroke="#163e79" stroke-width="1.8"/>
+      <path d="M54 45 L95 25 L88 70 L60 55" fill="#ffffff" stroke="#163e79" stroke-width="1.8"/>
+      <rect x="38" y="55" width="24" height="6" rx="1" fill="#ffffff" stroke="#163e79" stroke-width="1"/>
     </svg>`
   };
 

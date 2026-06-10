@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.xanwar.rps.client.TornApiClient;
 import com.xanwar.rps.config.GameProperties;
 import com.xanwar.rps.config.TornDepositProperties;
+import com.xanwar.rps.game.TornXanaxDepositParser;
 import com.xanwar.rps.model.Deposit;
 import com.xanwar.rps.model.PendingDeposit;
 import com.xanwar.rps.model.User;
@@ -167,15 +168,9 @@ public class DepositService {
     }
 
     private void parseAndProcessEvents(JsonNode events) {
+        String requiredMessage = depositProperties.getRequiredMessage();
         Iterator<Map.Entry<String, JsonNode>> fields = events.fields();
-        int count = 0;
-        while (fields.hasNext()) {
-            fields.next();
-            count++;
-        }
-        log.info("[DEPOSIT] Total events to process: {}", count);
-
-        fields = events.fields();
+        
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> entry = fields.next();
             String eventId = entry.getKey();
@@ -186,39 +181,23 @@ public class DepositService {
             if (!eventText.contains("Xanax")) continue;
             log.info("[DEPOSIT] Found potential Xanax event ({}): {}", eventId, eventText);
 
-            Matcher senderMatch = Pattern.compile("XID=(\\d+)").matcher(eventText);
-            if (!senderMatch.find()) {
-                log.warn("[DEPOSIT] Could not extract sender ID from event: {}", eventText);
-                continue;
-            }
-            String senderId = senderMatch.group(1);
-
-            Matcher amountMatch = Pattern.compile("You were sent (?:([\\d,]+)x|some) Xanax from", Pattern.CASE_INSENSITIVE).matcher(eventText);
+            Optional<TornXanaxDepositParser.ParsedDeposit> parsed = TornXanaxDepositParser.parse(eventText, requiredMessage);
             
-            if (amountMatch.find()) {
-                int sentAmount = 0;
-                String amtStr = amountMatch.group(1);
-                if (amtStr != null) {
-                    sentAmount = Integer.parseInt(amtStr.replace(",", ""));
-                } else if (eventText.contains("some")) {
-                    sentAmount = 1;
-                }
+            if (parsed.isPresent()) {
+                TornXanaxDepositParser.ParsedDeposit deposit = parsed.get();
+                String senderId = deposit.senderTornId();
+                int sentAmount = deposit.xanaxAmount();
 
-                if (sentAmount == 0) {
-                    log.warn("[DEPOSIT] Parsed sentAmount is 0 for event: {}", eventText);
-                    continue;
-                }
-                
-                log.info("[DEPOSIT] Parsed event: Sender={}, Amount={}, Time={}", senderId, sentAmount, Instant.ofEpochMilli(eventTimestamp));
+                log.info("[DEPOSIT] Parsed event: Sender={}, Amount={}, Message='{}', Time={}", 
+                        senderId, sentAmount, deposit.messageText(), Instant.ofEpochMilli(eventTimestamp));
 
-                // For manual verify, we only process if the user has an account
                 if (userRepository.existsByTornId(senderId)) {
                     claimDeposit(senderId, eventId, sentAmount, Instant.ofEpochMilli(eventTimestamp));
                 } else {
                     log.info("[DEPOSIT] Skipping event: Sender {} does not have a site account.", senderId);
                 }
             } else {
-                log.info("[DEPOSIT] Event did not match Xanax sent pattern: {}", eventText);
+                log.info("[DEPOSIT] Event failed parser or message check: {}", eventText);
             }
         }
     }
@@ -236,6 +215,7 @@ public class DepositService {
         JsonNode events = data.path("events");
         if (!events.isObject()) return;
 
+        String requiredMessage = depositProperties.getRequiredMessage();
         Iterator<Map.Entry<String, JsonNode>> fields = events.fields();
         while (fields.hasNext()) {
             Map.Entry<String, JsonNode> entry = fields.next();
@@ -244,30 +224,15 @@ public class DepositService {
             String eventText = event.path("event").asText("");
             long eventTimestamp = event.path("timestamp").asLong() * 1000;
 
-            // Simple regex match as requested in the snippet
             if (!eventText.contains("Xanax")) continue;
 
-            // Extract sender ID from XID=...
-            Matcher senderMatch = Pattern.compile("XID=(\\d+)").matcher(eventText);
-            if (!senderMatch.find()) continue;
-            String senderId = senderMatch.group(1);
-
-            // Extract amount
-            // Matcher amountMatch = Pattern.compile("You were sent (?:([\\d,]+)x|some) Xanax from").matcher(eventText);
-            // Wait, I should use the robust parser or the requested regex. 
-            // The requested regex was: /You were sent (?:([\d,]+)x|some) Xanax from/
-            Matcher amountMatch = Pattern.compile("You were sent (?:([\\d,]+)x|some) Xanax from", Pattern.CASE_INSENSITIVE).matcher(eventText);
+            Optional<TornXanaxDepositParser.ParsedDeposit> parsed = TornXanaxDepositParser.parse(eventText, requiredMessage);
             
-            if (amountMatch.find()) {
-                int sentAmount = 0;
-                String amtStr = amountMatch.group(1);
-                if (amtStr != null) {
-                    sentAmount = Integer.parseInt(amtStr.replace(",", ""));
-                } else if (eventText.contains("some")) {
-                    sentAmount = 1;
-                }
+            if (parsed.isPresent()) {
+                TornXanaxDepositParser.ParsedDeposit deposit = parsed.get();
+                String senderId = deposit.senderTornId();
+                int sentAmount = deposit.xanaxAmount();
 
-                if (sentAmount == 0) continue;
                 if (eventTimestamp <= (startTime.toEpochMilli() - 10000)) continue;
                 if (!tornId.equals(senderId)) continue;
 
@@ -281,27 +246,31 @@ public class DepositService {
 
     @Transactional
     protected void claimDeposit(String tornId, String eventId, int amount, Instant tornTime) {
-        // Unique check via DB
         String uniqueId = "auto-" + eventId;
-        if (depositRepository.existsByEventId(uniqueId)) return;
+        if (depositRepository.existsByEventId(uniqueId)) {
+            log.info("[DEPOSIT] Event {} already processed. Skipping.", eventId);
+            return;
+        }
 
-        // Atomic claim: try to delete pending deposit if it exists.
-        // Even if no pending deposit exists (manual verify), we still proceed.
         pendingDepositRepository.deleteByTornId(tornId);
 
         User user = userRepository.findByTornId(tornId).orElseThrow();
-        long value = amount * depositProperties.getXanaxValue();
+        long currentBalance = user.safeBalance();
+        long moolaPerXanax = gameProperties.getMoolaPerXanax();
+        long credit = amount * moolaPerXanax;
 
-        user.setSiteBalance(user.getSiteBalance() + value);
+        log.info("[DEPOSIT] Crediting user {}: {} Xanax -> {} Moola. (Prev Balance: {})", 
+                tornId, amount, credit, currentBalance);
+
+        user.setSiteBalance(currentBalance + credit);
         userRepository.save(user);
 
-        Deposit record = new Deposit(uniqueId, tornId, user.getUsername(), amount, value, tornTime);
+        Deposit record = new Deposit(uniqueId, tornId, user.getUsername(), amount, credit, tornTime);
         record.setUser(user);
         depositRepository.save(record);
 
-        log.info("[DEPOSIT] Confirmed {} Xanax for user {}. Value: {}", amount, tornId, value);
+        log.info("[DEPOSIT] Successfully confirmed deposit. New Balance: {}", user.getSiteBalance());
         
-        // Sync and stop monitoring
         stopMonitoring(tornId, "confirmed");
         broadcastSync("confirm", eventId, null);
     }

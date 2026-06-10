@@ -1706,14 +1706,14 @@ function showMatchOverlay(isWin, winnerName, winnings, rake, p1Wins, p2Wins, isF
 
   const trophySvg = isWin
     ? `<svg class="result-sketch-icon" viewBox="0 0 100 100" aria-hidden="true">
-        <path d="M30 38 Q28 22 50 18 Q72 22 70 38 L68 48 Q66 58 50 62 Q34 58 32 48Z" fill="none" stroke="#227c41" stroke-width="2.5"/>
+        <path d="M30 38 Q28 22 50 18 Q72 22 70 38 L68 48 Q66 58 50 62 Q34 58 32 48Z" fill="none" stroke="#446fa9" stroke-width="2.5"/>
         <path d="M38 62 L36 78 L64 78 L62 62" fill="none" stroke="#163e79" stroke-width="2"/>
         <path d="M42 78 L40 88 L60 88 L58 78" fill="none" stroke="#163e79" stroke-width="2"/>
         <path d="M22 32 Q18 28 24 24 M78 32 Q82 28 76 24" fill="none" stroke="#3d69ad" stroke-width="1.8" stroke-linecap="round"/>
       </svg>`
     : `<svg class="result-sketch-icon" viewBox="0 0 100 100" aria-hidden="true">
-        <circle cx="50" cy="48" r="28" fill="none" stroke="#b22d2d" stroke-width="2.5"/>
-        <path d="M32 30 L68 66 M68 30 L32 66" fill="none" stroke="#b22d2d" stroke-width="3" stroke-linecap="round"/>
+        <circle cx="50" cy="48" r="28" fill="none" stroke="#163e79" stroke-width="2.5"/>
+        <path d="M32 30 L68 66 M68 30 L32 66" fill="none" stroke="#163e79" stroke-width="3" stroke-linecap="round"/>
         <path d="M18 78 Q50 88 82 78" fill="none" stroke="#163e79" stroke-width="1.5" stroke-linecap="round"/>
       </svg>`;
 

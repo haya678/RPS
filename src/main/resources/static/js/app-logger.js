@@ -18,7 +18,7 @@ const AppLogger = (() => {
     logs.unshift(entry);
     if (logs.length > MAX_LOGS) logs.pop();
 
-    const color = level === 'ERROR' ? 'color: #ff4d4d' : level === 'WARN' ? 'color: #ffcc00' : 'color: #3d69ad';
+    const color = level === 'ERROR' ? 'color: #163e79' : level === 'WARN' ? 'color: #aecbf7' : 'color: #3d69ad';
     console.log(`%c[${level}] [${context}] ${message}`, color, data || '');
 
     // If there's a debug panel, we could render it here.
