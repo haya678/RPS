@@ -188,6 +188,9 @@ function createHoverCard() {
           <div class="hover-stat"><span class="hover-label">Win Rate</span><strong id="hover-winrate"></strong></div>
           <div class="hover-stat"><span class="hover-label">Net</span><strong id="hover-net"></strong></div>
         </div>
+        <div id="tip-actions" class="tip-actions hidden" style="margin-top: 0.75rem; border-top: 1px dashed var(--line); padding-top: 0.6rem;">
+           <button class="btn-accent btn-small" id="btn-tip-user" style="width: 100%;">Tip Moola</button>
+        </div>
       </div>
     </div>
   `;
@@ -213,16 +216,43 @@ function positionHoverCard(x, y) {
 function showProfileHoverCard(profile, x, y) {
   createHoverCard();
   if (!hoverCard) return;
-  hoverCard.querySelector('#hover-avatar').src = profile.profile_image_url || profile.avatar || `https://images.torn.com/avatars/${profile.torn_id}.png`;
+  
+  const profileTornId = String(profile.torn_id || profile.player_id || '');
+  
+  hoverCard.querySelector('#hover-avatar').src = profile.profile_image_url || profile.avatar || `https://images.torn.com/avatars/${profileTornId}.png`;
   hoverCard.querySelector('#hover-username').textContent = profile.username || 'Unknown player';
-  hoverCard.querySelector('#hover-meta').textContent = profile.torn_id ? `Torn ID ${profile.torn_id}` : 'Guest profile';
+  hoverCard.querySelector('#hover-meta').textContent = profileTornId ? `Torn ID ${profileTornId}` : 'Guest profile';
+  
   const formatMoola = (value) => typeof MoolaIcon !== 'undefined' ? MoolaIcon.amountHtml(asNumber(value)) : asNumber(value).toLocaleString();
+  
   hoverCard.querySelector('#hover-balance').innerHTML = profile.site_balance !== undefined ? formatMoola(profile.site_balance) : '0';
   hoverCard.querySelector('#hover-matches').textContent = `${asNumber(profile.total_matches_played)} played`;
   hoverCard.querySelector('#hover-wins').textContent = `${asNumber(profile.total_matches_won)} won`;
   hoverCard.querySelector('#hover-winrate').textContent = `${asNumber(profile.win_rate).toFixed(2)}%`;
+  
   const net = asNumber(profile.net_profit_loss);
   hoverCard.querySelector('#hover-net').textContent = net >= 0 ? `+${net.toLocaleString()}` : net.toLocaleString();
+  
+  // Tip logic
+  const tipActions = hoverCard.querySelector('#tip-actions');
+  if (tipActions) {
+    const isSelf = currentUser && String(currentUser.torn_id) === profileTornId;
+    const isBot = profileTornId === 'BOT_BAINING';
+    
+    if (currentUser && !isSelf && !isBot && profileTornId) {
+      tipActions.classList.remove('hidden');
+      const tipBtn = hoverCard.querySelector('#btn-tip-user');
+      if (tipBtn) {
+        tipBtn.onclick = (e) => {
+          e.stopPropagation();
+          tipUser(profileTornId, profile.username);
+        };
+      }
+    } else {
+      tipActions.classList.add('hidden');
+    }
+  }
+
   hoverCard.classList.remove('hidden');
   hoverCardHideTimeout = null;
   positionHoverCard(x, y);
@@ -349,6 +379,45 @@ function updateBalance(bal) {
     MoolaIcon.setBalanceElement(displayBalance, bal);
   } else {
     displayBalance.textContent = bal.toLocaleString();
+  }
+}
+
+async function tipUser(toTornId, toUsername) {
+  const amountStr = prompt(`How much Moola do you want to tip ${toUsername}?`);
+  if (amountStr === null) return;
+  const amount = parseInt(amountStr, 10);
+  if (isNaN(amount) || amount <= 0) {
+    alert("Please enter a valid amount.");
+    return;
+  }
+
+  if (amount > currentUser.site_balance) {
+    alert("Insufficient balance.");
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/user/tip', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        fromTornId: String(currentUser.torn_id),
+        toTornId: String(toTornId),
+        amount: amount
+      }),
+      credentials: 'same-origin'
+    });
+    const data = await res.json();
+    if (res.ok) {
+      alert(data.message);
+      updateBalance(currentUser.site_balance - amount);
+      updateStatsModal();
+    } else {
+      alert(data.error || "Failed to tip.");
+    }
+  } catch (err) {
+    console.error("Tip error:", err);
+    alert("An error occurred.");
   }
 }
 

@@ -152,6 +152,21 @@ main {
   word-break: break-word;
 }
 
+/* ── CHAT BLUR ───────────────────────────────── */
+.blurred-text {
+  filter: blur(4px);
+  background: rgba(22, 62, 121, 0.1);
+  border-radius: 2px;
+  padding: 0 2px;
+  transition: filter 0.2s ease;
+  user-select: none;
+  cursor: help;
+}
+
+.blurred-text:hover {
+  filter: blur(0);
+}
+
 .chat-line .chat-user {
   color: var(--accent);
   font-weight: 700;

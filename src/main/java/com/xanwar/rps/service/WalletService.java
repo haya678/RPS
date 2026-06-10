@@ -69,4 +69,28 @@ public class WalletService {
         userRepository.save(user);
         return true;
     }
+
+    @Transactional
+    public void tip(String fromTornId, String toTornId, long amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("Tip amount must be positive");
+        }
+        if (fromTornId.equals(toTornId)) {
+            throw new IllegalArgumentException("You cannot tip yourself");
+        }
+        
+        User fromUser = userRepository.findByTornId(fromTornId)
+                .orElseThrow(() -> new IllegalArgumentException("Sender not found"));
+        User toUser = userRepository.findByTornId(toTornId)
+                .orElseThrow(() -> new IllegalArgumentException("Recipient not found"));
+
+        if (fromUser.getSiteBalance() < amount) {
+            throw new IllegalStateException("Insufficient balance to tip " + amount + " Moola");
+        }
+
+        fromUser.setSiteBalance(fromUser.getSiteBalance() - amount);
+        toUser.setSiteBalance(toUser.getSiteBalance() + amount);
+        
+        log.info("Player {} tipped {} Moola to {}", fromTornId, amount, toTornId);
+    }
 }

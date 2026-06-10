@@ -33,7 +33,7 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserDto> getTopWinners() {
-        return userRepository.findTop10ByOrderByTotalMatchesWonDesc().stream()
+        return userRepository.findTopProfitableUsers(org.springframework.data.domain.PageRequest.of(0, 10)).stream()
                 .map(UserDto::from)
                 .toList();
     }

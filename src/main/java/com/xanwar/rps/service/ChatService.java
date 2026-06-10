@@ -19,7 +19,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ChatService {
 
     private static final int MAX_MESSAGE_LENGTH = 500;
-    private static final long MIN_MESSAGE_INTERVAL_MS = 800;
+    private static final long MIN_MESSAGE_INTERVAL_MS = 2500; // Increased to 2.5s for spam protection
+
+    private static final java.util.List<String> BANNED_WORDS = java.util.Arrays.asList(
+        "fuck", "shit", "bitch", "cunt", "asshole", "faggot", "nigger", "dick", "pussy", "dumbass", "idiot"
+    );
 
     private final GameRoomService gameRoomService;
     private final GameSessionRegistry sessionRegistry;
@@ -55,11 +59,12 @@ public class ChatService {
 
         sessionRegistry.registerIdentity(session, tornId, username);
         if (!allowMessage(tornId)) {
-            sendChatError(session, "Please wait before sending another message.");
+            sendChatError(session, "Slow down! Chatting too fast.");
             return;
         }
 
-        ObjectNode payload = buildChatPayload("global", null, tornId, username, message);
+        String filteredMessage = filterProfanity(message);
+        ObjectNode payload = buildChatPayload("global", null, tornId, username, filteredMessage);
         sessionRegistry.broadcastToAll(payload);
     }
 
@@ -83,12 +88,33 @@ public class ChatService {
         sessionRegistry.bindToRoom(session, roomId);
 
         if (!allowMessage(tornId)) {
-            sendChatError(session, "Please wait before sending another message.");
+            sendChatError(session, "Slow down! Chatting too fast.");
             return;
         }
 
-        ObjectNode payload = buildChatPayload("room", roomId, tornId, username, message);
+        String filteredMessage = filterProfanity(message);
+        ObjectNode payload = buildChatPayload("room", roomId, tornId, username, filteredMessage);
         sessionRegistry.sendToRoomId(roomId, payload);
+    }
+
+    private String filterProfanity(String message) {
+        String filtered = message;
+        for (String word : BANNED_WORDS) {
+            // Case-insensitive regex for whole words
+            String regex = "(?i)\\b" + java.util.regex.Pattern.quote(word) + "\\b";
+            java.util.regex.Matcher matcher = java.util.regex.Pattern.compile(regex).matcher(filtered);
+            
+            StringBuilder sb = new StringBuilder();
+            int lastIndex = 0;
+            while (matcher.find()) {
+                sb.append(filtered, lastIndex, matcher.start());
+                sb.append("<span class=\"blurred-text\">").append(matcher.group()).append("</span>");
+                lastIndex = matcher.end();
+            }
+            sb.append(filtered.substring(lastIndex));
+            filtered = sb.toString();
+        }
+        return filtered;
     }
 
     private boolean canUseRoomChat(GameRoom room, String tornId) {
