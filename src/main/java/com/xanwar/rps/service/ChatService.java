@@ -63,7 +63,8 @@ public class ChatService {
             return;
         }
 
-        String filteredMessage = filterProfanity(message);
+        String escapedMessage = escapeHtml(message);
+        String filteredMessage = filterProfanity(escapedMessage);
         ObjectNode payload = buildChatPayload("global", null, tornId, username, filteredMessage);
         sessionRegistry.broadcastToAll(payload);
     }
@@ -92,9 +93,19 @@ public class ChatService {
             return;
         }
 
-        String filteredMessage = filterProfanity(message);
+        String escapedMessage = escapeHtml(message);
+        String filteredMessage = filterProfanity(escapedMessage);
         ObjectNode payload = buildChatPayload("room", roomId, tornId, username, filteredMessage);
         sessionRegistry.sendToRoomId(roomId, payload);
+    }
+
+    private String escapeHtml(String input) {
+        if (input == null) return null;
+        return input.replace("&", "&amp;")
+                    .replace("<", "&lt;")
+                    .replace(">", "&gt;")
+                    .replace("\"", "&quot;")
+                    .replace("'", "&#39;");
     }
 
     private String filterProfanity(String message) {

@@ -154,17 +154,12 @@ main {
 
 /* ── CHAT BLUR ───────────────────────────────── */
 .blurred-text {
-  filter: blur(4px);
-  background: rgba(22, 62, 121, 0.1);
+  filter: blur(5px);
+  background: rgba(22, 62, 121, 0.15);
   border-radius: 2px;
   padding: 0 2px;
-  transition: filter 0.2s ease;
   user-select: none;
-  cursor: help;
-}
-
-.blurred-text:hover {
-  filter: blur(0);
+  cursor: default;
 }
 
 .chat-line .chat-user {

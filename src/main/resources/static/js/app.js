@@ -631,7 +631,12 @@ function appendChatLine(logEl, username, message, timestamp, isSelf) {
   timeSpan.className = 'chat-time';
   timeSpan.textContent = formatChatTime(timestamp);
   line.appendChild(userSpan);
-  line.appendChild(document.createTextNode(' ' + message + ' '));
+  
+  const msgWrap = document.createElement('span');
+  msgWrap.className = 'chat-msg';
+  msgWrap.innerHTML = ' ' + message + ' ';
+  line.appendChild(msgWrap);
+
   line.appendChild(timeSpan);
   logEl.appendChild(line);
   logEl.scrollTop = logEl.scrollHeight;
