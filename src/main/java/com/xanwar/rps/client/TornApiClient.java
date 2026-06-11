@@ -17,6 +17,8 @@ public class TornApiClient {
     private final RestTemplate restTemplate;
     private final TornApiProperties tornApi;
     private final ObjectMapper objectMapper;
+    private JsonNode cachedHouseActivity;
+    private long lastFetchTime = 0;
 
     public TornApiClient(RestTemplate restTemplate, TornApiProperties tornApi, ObjectMapper objectMapper) {
         this.restTemplate = restTemplate;
@@ -45,14 +47,23 @@ public class TornApiClient {
      * Does NOT use the Torn {@code from} parameter because it behaves
      * inconsistently across {@code events} and {@code log} selections.
      * Instead we fetch the latest batch and filter by timestamp client-side.
+     * Caches for 5 seconds to prevent rate-limit spam from concurrent users.
      */
-    public JsonNode fetchHouseActivity() {
+    public synchronized JsonNode fetchHouseActivity() {
+        long now = System.currentTimeMillis();
+        if (cachedHouseActivity != null && (now - lastFetchTime) < 5000) {
+            log.debug("Returning cached house activity ({}ms old)", now - lastFetchTime);
+            return cachedHouseActivity;
+        }
+
         String url = tornApi.getBaseUrl()
                 + "/user/?selections=events,log"
                 + "&key=" + tornApi.getMyKey()
-                + "&comment=" + System.currentTimeMillis();
-        log.debug("Fetching house activity from Torn API");
-        return getJson(url);
+                + "&comment=" + now;
+        log.debug("Fetching fresh house activity from Torn API");
+        cachedHouseActivity = getJson(url);
+        lastFetchTime = now;
+        return cachedHouseActivity;
     }
 
     private JsonNode getJson(String url) {

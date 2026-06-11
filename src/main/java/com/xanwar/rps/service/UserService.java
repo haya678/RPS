@@ -23,6 +23,8 @@ public class UserService {
     private final MatchResultRepository matchResultRepository;
     private final TornApiClient tornApiClient;
     private final PasswordEncoder passwordEncoder;
+    private List<UserDto> cachedLeaderboard;
+    private long lastLeaderboardFetch = 0;
 
     public UserService(UserRepository userRepository, MatchResultRepository matchResultRepository, TornApiClient tornApiClient, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
@@ -33,9 +35,15 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<UserDto> getTopWinners() {
-        return userRepository.findTopProfitableUsers(org.springframework.data.domain.PageRequest.of(0, 10)).stream()
+        long now = System.currentTimeMillis();
+        if (cachedLeaderboard != null && (now - lastLeaderboardFetch) < 30000) {
+            return cachedLeaderboard;
+        }
+        cachedLeaderboard = userRepository.findTopProfitableUsers(org.springframework.data.domain.PageRequest.of(0, 10)).stream()
                 .map(UserDto::from)
                 .toList();
+        lastLeaderboardFetch = now;
+        return cachedLeaderboard;
     }
 
     @Transactional

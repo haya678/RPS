@@ -31,6 +31,7 @@ public class GameRoomService {
     private final GameSessionRegistry sessionRegistry;
     private final ObjectMapper objectMapper;
     private final Map<String, GameRoom> rooms = new ConcurrentHashMap<>();
+    private final Map<String, GameRoom> publicWaitingRooms = new ConcurrentHashMap<>();
     private final Map<String, java.util.concurrent.ScheduledFuture<?>> roomTimers = new ConcurrentHashMap<>();
     private final java.util.concurrent.ScheduledExecutorService scheduler = java.util.concurrent.Executors.newScheduledThreadPool(2);
 
@@ -86,6 +87,9 @@ public class GameRoomService {
         }
         GameRoom room = new GameRoom(roomId, tornId, username, betAmount, winsRequired, session.getId(), visibility);
         rooms.put(roomId, room);
+        if (isPublic && !playWithBot) {
+            publicWaitingRooms.put(roomId, room);
+        }
         sessionRegistry.bindPlayer(session, tornId, username, roomId);
 
         if (playWithBot) {
@@ -118,8 +122,7 @@ public class GameRoomService {
     }
 
     public List<GameRoom> listPublicWaitingRooms() {
-        return rooms.values().stream()
-                .filter(room -> room.isPublic() && room.getStatus() == RoomStatus.WAITING)
+        return publicWaitingRooms.values().stream()
                 .sorted(Comparator.comparingLong(GameRoom::getCreatedAtEpochMs).reversed())
                 .toList();
     }
@@ -191,6 +194,7 @@ public class GameRoomService {
             return;
         }
 
+        publicWaitingRooms.remove(roomId);
         sessionRegistry.bindPlayer(session, tornId, username, roomId);
 
         sessionRegistry.sendToRoom(room, buildMatchStartedPayload(room));
@@ -229,6 +233,7 @@ public class GameRoomService {
         msg.put("roomId", room.getRoomId());
         msg.put("message", "Room cancelled. Your bet was refunded.");
         sessionRegistry.sendJson(session, msg);
+        publicWaitingRooms.remove(room.getRoomId());
         cleanupRoom(room);
     }
 
@@ -514,6 +519,7 @@ public class GameRoomService {
     private void cleanupRoom(GameRoom room) {
         boolean notifyPublicList = room.isPublic();
         rooms.remove(room.getRoomId());
+        publicWaitingRooms.remove(room.getRoomId());
         sessionRegistry.removeRoom(room.getRoomId());
         if (notifyPublicList) {
             broadcastPublicRooms();

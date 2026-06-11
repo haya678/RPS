@@ -49,7 +49,6 @@ class DepositServiceTest {
         depositProperties.setMaxAgeHours(72);
         depositProperties.setRecipientName("Hannath");
         depositProperties.setRecipientId("3961385");
-        depositProperties.setXanaxValue(820000);
 
         gameProperties = new GameProperties();
         gameProperties.setMoolaPerXanax(4);
@@ -109,7 +108,7 @@ class DepositServiceTest {
 
         depositService.claimDeposit("67890", "12345", 1, Instant.now());
 
-        assertThat(user.getSiteBalance()).isEqualTo(100L + depositProperties.getXanaxValue());
+        assertThat(user.getSiteBalance()).isEqualTo(100L + gameProperties.getMoolaPerXanax());
     }
 
     @Test
